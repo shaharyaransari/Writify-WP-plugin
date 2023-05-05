@@ -57,36 +57,35 @@ function wpcoder110_ajax_calls()
     ?>
     <style>.elementor-shortcode{margin-top: 10px;}</style>
     <script>
+
         var div_index = 0;
+    const source = new EventSource("<?php echo admin_url(
+        "admin-ajax.php"
+    ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
+    "ssevent_stream_openai"
+); ?>");
+    source.onmessage = function (event) {
+            if (event.data == "[ALLDONE]") {
+                source.close();
+            } else if (event.data == "[DONE]") {
+                div_index = div_index + 1;
+                jQuery('.response-div-'+(div_index)).css('display', 'flex');
+                jQuery('.response-div-divider'+(div_index)).show();
+            } else {
+                text = JSON.parse(event.data).choices[0].delta.content;
+                if (text === undefined) {
 
-        function initEventSource() {
-            const source = new EventSource("<?php echo admin_url(
-                "admin-ajax.php"
-            ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
-                "ssevent_stream_openai"
-            ); ?>");
-
-            source.onmessage = function (event) {
-                // ... (rest of the onmessage event code)
-            };
-
-            source.onerror = function(event) {
-                if (event.target.readyState === EventSource.CLOSED) {
-                    console.log('Connection closed, retrying in 5 seconds...');
-                    setTimeout(() => {
-                        initEventSource();
-                    }, 5000);
-                } else if (event.target.readyState === EventSource.CONNECTING) {
-                    console.log('Reconnecting...');
+                } else {
+                    text = text.replace(/(?:\r\n|\r|\n)/g, "<br />");
+                    jQuery('.response-div-'+div_index).find('.preloader-icon').hide();
+                    var current_div = jQuery('.response-div-'+div_index).find('.elementor-shortcode');
+                    current_div.html(current_div.html() + text);
                 }
-            };
-        }
-
-        initEventSource();
+            }
+        };
     </script>
     <?php
 }
-
 
 function wpcoder110_make_request($feed, $entry, $form)
 {
@@ -375,19 +374,19 @@ function event_stream_openai()
                 //wpcoder110_chatgpt_writelog($feed_name . ' is already processes!');
                 $lines = explode("<br />", $entry[$field_id]);
                 foreach ($lines as $line) {
-                    $object = new stdClass();
-                    if (empty(trim($line))) {
-                        $line = "\n\r";
-                    } else {
-                        $line = trim($line) . "\n\r";
-                    }
-                    $object->content = $line;
-                    echo "data: " .
-                        json_encode(["choices" => [["delta" => $object]]]) .
-                        PHP_EOL;
-                    echo PHP_EOL;
-                    flush();
-                }
+        $object = new stdClass();
+        if (empty(trim($line))) {
+            $line = "\r\n";
+        } else {
+            $line = trim($line) . "\r\n";
+        }
+        $object->content = $line;
+        echo "data: " .
+            json_encode(["choices" => [["delta" => $object]]]) .
+            PHP_EOL;
+        echo PHP_EOL;
+        flush();
+    }
                 echo "data: [DONE]" . PHP_EOL;
                 echo PHP_EOL;
                 flush();
