@@ -6,16 +6,10 @@
  * Copyright: © 2023-2026 RLT
  */
 
-/*
- * Plugin constants
- */
-if (!defined("OPAIGFRLT_URL")) {
-    define("OPAIGFRLT_URL", plugin_dir_url(__FILE__));
-}
-if (!defined("OPAIGFRLT_PATH")) {
-    define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__));
-}
-define("OPAIGFRLT_LOG", false);
+// Define the plugin constants if not defined.
+defined("OPAIGFRLT_URL") or define("OPAIGFRLT_URL", plugin_dir_url(__FILE__));
+defined("OPAIGFRLT_PATH") or define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__));
+defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", function ($feeds) {
     return "";
@@ -48,17 +42,18 @@ function wpcoder110_get_feeds($form_id = null)
 add_action("wp_footer", "wpcoder110_ajax_calls", 9999);
 function wpcoder110_ajax_calls()
 {
-    $form_id = isset($_GET["form_id"])
-        ? (int) sanitize_text_field($_GET["form_id"])
-        : 0;
-    $entry_id = isset($_GET["entry_id"])
-        ? (int) sanitize_text_field($_GET["entry_id"])
-        : 0;
+    // Moved repeated code to a single function.
+    $get_int_val = function ($key) {
+        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
+    };
+
+    $form_id = $get_int_val("form_id");
+    $entry_id = $get_int_val("entry_id");
     ?>
     <style>.elementor-shortcode{margin-top: 10px;}</style>
     <script>
 
-        var div_index = 0;
+        var div_index = 0, div_index_str = '';
     const source = new EventSource("<?php echo admin_url(
         "admin-ajax.php"
     ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
@@ -67,10 +62,15 @@ function wpcoder110_ajax_calls()
     source.onmessage = function (event) {
             if (event.data == "[ALLDONE]") {
                 source.close();
-            } else if (event.data == "[DONE]") {
-                div_index = div_index + 1;
+            } else if (event.data == "[DIVINDEX-0]" || event.data == "[DIVINDEX-1]" || event.data == "[DIVINDEX-2]" || event.data == "[DIVINDEX-3]" || event.data == "[DIVINDEX-4]" || event.data == "[DIVINDEX-5]" || event.data == "[DIVINDEX-6]" || event.data == "[DIVINDEX-7]" || event.data == "[DIVINDEX-8]" || event.data == "[DIVINDEX-9]") {
+                div_index_str = event.data.replace("[DIVINDEX-", "");
+                div_index_str = div_index_str.replace("]", "");
+                div_index = parseInt(div_index_str);
+				console.log(div_index);
                 jQuery('.response-div-'+(div_index)).css('display', 'flex');
                 jQuery('.response-div-divider'+(div_index)).show();
+			} else if (event.data == "[DONE]") {
+               
             } else {
                 text = JSON.parse(event.data).choices[0].delta.content;
                 if (text === undefined) {
@@ -83,6 +83,10 @@ function wpcoder110_ajax_calls()
                 }
             }
         };
+	source.onerror = function(event) {
+	  div_index = 0;
+      source.close();
+    };
     </script>
     <?php
 }
@@ -200,7 +204,6 @@ function wpcoder110_make_request($feed, $entry, $form)
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
-
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
         $object = new stdClass();
@@ -319,13 +322,20 @@ function event_stream_openai()
             echo PHP_EOL;
             flush();
         }
+        
+        // New function to output SSE data.
+        $send_data = function ($data) {
+            echo "data: " . $data . PHP_EOL;
+            echo PHP_EOL;
+            flush();
+        };
+		
+		$send_data("[DIVINDEX-0]");
 
         $feeds = wpcoder110_get_feeds($form_id);
 
         if (empty($feeds)) {
-            echo "data: [ALLDONE]" . PHP_EOL;
-            echo PHP_EOL;
-            flush();
+            $send_data("[ALLDONE]");
         }
 
         $form = GFAPI::get_form($form_id);
@@ -348,6 +358,7 @@ function event_stream_openai()
         $feeds_processed = false;
 
         // Loop through feeds.
+        $feed_index = 1;
         foreach ($feeds as $feed) {
             // Get the feed name.
             $feed_name = rgempty("feed_name", $feed["meta"])
@@ -374,23 +385,20 @@ function event_stream_openai()
                 //wpcoder110_chatgpt_writelog($feed_name . ' is already processes!');
                 $lines = explode("<br />", $entry[$field_id]);
                 foreach ($lines as $line) {
-        $object = new stdClass();
-        if (empty(trim($line))) {
-            $line = "\r\n";
-        } else {
-            $line = trim($line) . "\r\n";
-        }
-        $object->content = $line;
-        echo "data: " .
-            json_encode(["choices" => [["delta" => $object]]]) .
-            PHP_EOL;
-        echo PHP_EOL;
-        flush();
-    }
-                echo "data: [DONE]" . PHP_EOL;
-                echo PHP_EOL;
-                flush();
-            } else {
+                    $object = new stdClass();
+                    if (empty(trim($line))) {
+                        $line = "\r\n";
+                    } else {
+                        $line = trim($line) . "\r\n";
+                    }
+                    $object->content = $line;
+                    $send_data(
+                        json_encode(["choices" => [["delta" => $object]]])
+                    );
+                }
+                $send_data("[DONE]");
+				$send_data("[DIVINDEX-".$feed_index."]");
+                } else {
                 wpcoder110_chatgpt_writelog(
                     "Processing " . $feed_name . " is active!"
                 );
@@ -406,7 +414,9 @@ function event_stream_openai()
                 } else {
                     //skip
                 }
+				$send_data("[DIVINDEX-".$feed_index."]");
             }
+			$feed_index++;
         }
 
         gform_update_meta($entry["id"], "{$_slug}_is_fulfilled", true);
@@ -420,18 +430,14 @@ function event_stream_openai()
             gform_update_meta($entry["id"], "processed_feeds", $meta);
         }
 
-        echo "data: [ALLDONE]" . PHP_EOL;
-        echo PHP_EOL;
-        flush();
+        $send_data("[ALLDONE]");
         die();
     }
-    echo "data: [ALLDONE]" . PHP_EOL;
-    echo PHP_EOL;
-    flush();
+    $send_data("[ALLDONE]");
     die();
 }
 
-function wpcoder110_chatgpt_writelog($log_text_line)
+function wpcoder110_chatgpt_writelog($msg)
 {
     if (OPAIGFRLT_LOG) {
         $filename = "chatgptlog_" . date("dmY") . ".debug";
