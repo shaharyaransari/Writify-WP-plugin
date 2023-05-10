@@ -201,7 +201,7 @@ function wpcoder110_make_request($feed, $entry, $form)
         ];
 
         // Add retry mechanism
-        $max_retries = 3;
+        $max_retries = 10;
         $retry_count = 0;
 
         do {
@@ -301,8 +301,26 @@ function wpcoder110_make_request($feed, $entry, $form)
                     $retry_count++;
                     if ($retry_count <= $max_retries) {
                         $retry = true;
-                        sleep(1); // Optional: add sleep time before retrying
+                        //sleep(1); // Optional: add sleep time before retrying
+                        GFAPI::add_note(
+                            $entry["id"],
+                            0,
+                            "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->res
+                        );
+                        $GWiz_GF_OpenAI_Object->add_feed_error(
+                            $object->error,
+                            $feed,
+                            $entry,
+                            $form
+                        );
                     } else {
+                        GFAPI::add_note(
+                            $entry["id"],
+                            0,
+                            "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->res
+                        );
                         $GWiz_GF_OpenAI_Object->add_feed_error(
                             $object->error,
                             $feed,
