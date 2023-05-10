@@ -200,103 +200,120 @@ function wpcoder110_make_request($feed, $entry, $form)
             "Authorization: " . $headers["Authorization"],
         ];
 
-        $post_json = json_encode($body);
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-		
-		
+        // Add retry mechanism
+        $max_retries = 3;
+        $retry_count = 0;
 
-        $object = new stdClass();
-        $object->res = "";
-        $object->error = "";
+        do {
+            $retry = false;
 
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object) {
-            $pop_arr = explode("data: ", $data);
+            $post_json = json_encode($body);
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
-            $pop_js_2 = isset($pop_arr[2])
-                ? json_decode($pop_arr[2], true)
-                : "";
 
-            if (isset($pop_js_2["choices"])) {
-                $line = isset($pop_js_2["choices"][0]["delta"]["content"])
-                    ? $pop_js_2["choices"][0]["delta"]["content"]
+
+            $object = new stdClass();
+            $object->res = "";
+            $object->error = "";
+
+            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object) {
+                $pop_arr = explode("data: ", $data);
+
+                $pop_js_2 = isset($pop_arr[2])
+                    ? json_decode($pop_arr[2], true)
                     : "";
-                if (!empty($line) || $line == "1" || $line == "0") {
-                    if (strpos($line, "\n") !== false) {
-                        $object->res .= nl2br($line);
-						 
-                    } else {
-                        $object->res .= $line;
-						
-                    }
-                }
-            } else {
-                if (isset($pop_arr[1])) {
-                    $pop_js = json_decode($pop_arr[1], true);
-                    if (isset($pop_js["choices"])) {
-                        $line = isset($pop_js["choices"][0]["delta"]["content"])
-                            ? $pop_js["choices"][0]["delta"]["content"]
-                            : "";
-                        if (!empty($line) || $line == "1" || $line == "0") {
-                            if (strpos($line, "\n") !== false) {
-                                $object->res .= nl2br($line);
-                                //wpcoder110_chatgpt_writelog(nl2br($line));
-                            } else {
-                                $object->res .= $line;
-                                //wpcoder110_chatgpt_writelog($line);
-                            }
+
+                if (isset($pop_js_2["choices"])) {
+                    $line = isset($pop_js_2["choices"][0]["delta"]["content"])
+                        ? $pop_js_2["choices"][0]["delta"]["content"]
+                        : "";
+                    if (!empty($line) || $line == "1" || $line == "0") {
+                        if (strpos($line, "\n") !== false) {
+                            $object->res .= nl2br($line);
+
+                        } else {
+                            $object->res .= $line;
+
                         }
                     }
                 } else {
-                    $pop_js = json_decode($data);
-                    if (isset($pop_js->error)) {
-                        if (isset($pop_js->error->message)) {
-                            $object->error = $pop_js->error->message;
+                    if (isset($pop_arr[1])) {
+                        $pop_js = json_decode($pop_arr[1], true);
+                        if (isset($pop_js["choices"])) {
+                            $line = isset($pop_js["choices"][0]["delta"]["content"])
+                                ? $pop_js["choices"][0]["delta"]["content"]
+                                : "";
+                            if (!empty($line) || $line == "1" || $line == "0") {
+                                if (strpos($line, "\n") !== false) {
+                                    $object->res .= nl2br($line);
+                                    //wpcoder110_chatgpt_writelog(nl2br($line));
+                                } else {
+                                    $object->res .= $line;
+                                    //wpcoder110_chatgpt_writelog($line);
+                                }
+                            }
                         }
-                        if (isset($pop_js->error->detail)) {
-                            $object->error = $pop_js->error->detail;
+                    } else {
+                        $pop_js = json_decode($data);
+                        if (isset($pop_js->error)) {
+                            if (isset($pop_js->error->message)) {
+                                $object->error = $pop_js->error->message;
+                            }
+                            if (isset($pop_js->error->detail)) {
+                                $object->error = $pop_js->error->detail;
+                            }
                         }
                     }
                 }
+                wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
+
+                echo $data;
+                return strlen($data);
+            });
+
+
+            curl_exec($ch);
+            $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if (!empty($object->res)) {
+                GFAPI::add_note(
+                    $entry["id"],
+                    0,
+                    "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
+                    $object->res
+                );
+                $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field(
+                    $feed,
+                    $entry,
+                    $form,
+                    $object->res
+                );
+            } else {
+                if ($http_status !== 200 || !empty($object->error)) {
+                    $retry_count++;
+                    if ($retry_count <= $max_retries) {
+                        $retry = true;
+                        sleep(1); // Optional: add sleep time before retrying
+                    } else {
+                        $GWiz_GF_OpenAI_Object->add_feed_error(
+                            $object->error,
+                            $feed,
+                            $entry,
+                            $form
+                        );
+                        return $object;
+                    }
+                }
             }
-			wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
-
-            echo $data;
-            return strlen($data);
-        });
-		
-
-        curl_exec($ch);
-        curl_close($ch);
-
-        if (!empty($object->res)) {
-            GFAPI::add_note(
-                $entry["id"],
-                0,
-                "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
-                $object->res
-            );
-            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field(
-                $feed,
-                $entry,
-                $form,
-                $object->res
-            );
-        } else {
-            $GWiz_GF_OpenAI_Object->add_feed_error(
-                $object->error,
-                $feed,
-                $entry,
-                $form
-            );
-            return $object;
-        }
+        } while ($retry);
 
         gform_add_meta(
             $entry["id"],
