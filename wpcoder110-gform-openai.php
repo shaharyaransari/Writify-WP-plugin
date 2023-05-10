@@ -50,43 +50,47 @@ function wpcoder110_ajax_calls()
     $form_id = $get_int_val("form_id");
     $entry_id = $get_int_val("entry_id");
     ?>
-    <style>.elementor-shortcode{margin-top: 10px;}</style>
+    <style>
+        .elementor-shortcode {
+            margin-top: 10px;
+        }
+    </style>
     <script>
 
         var div_index = 0, div_index_str = '';
-    const source = new EventSource("<?php echo admin_url(
-        "admin-ajax.php"
-    ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
-    "ssevent_stream_openai"
-); ?>");
-    source.onmessage = function (event) {
+        const source = new EventSource("<?php echo admin_url(
+            "admin-ajax.php"
+        ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
+                   "ssevent_stream_openai"
+               ); ?>");
+        source.onmessage = function (event) {
             if (event.data == "[ALLDONE]") {
                 source.close();
             } else if (event.data == "[DIVINDEX-0]" || event.data == "[DIVINDEX-1]" || event.data == "[DIVINDEX-2]" || event.data == "[DIVINDEX-3]" || event.data == "[DIVINDEX-4]" || event.data == "[DIVINDEX-5]" || event.data == "[DIVINDEX-6]" || event.data == "[DIVINDEX-7]" || event.data == "[DIVINDEX-8]" || event.data == "[DIVINDEX-9]") {
                 div_index_str = event.data.replace("[DIVINDEX-", "");
                 div_index_str = div_index_str.replace("]", "");
                 div_index = parseInt(div_index_str);
-				console.log(div_index);
-                jQuery('.response-div-'+(div_index)).css('display', 'flex');
-                jQuery('.response-div-divider'+(div_index)).show();
-			} else if (event.data == "[DONE]") {
-               
+                console.log(div_index);
+                jQuery('.response-div-' + (div_index)).css('display', 'flex');
+                jQuery('.response-div-divider' + (div_index)).show();
+            } else if (event.data == "[DONE]") {
+
             } else {
                 text = JSON.parse(event.data).choices[0].delta.content;
                 if (text === undefined) {
 
                 } else {
                     text = text.replace(/(?:\r\n|\r|\n)/g, "<br />");
-                    jQuery('.response-div-'+div_index).find('.preloader-icon').hide();
-                    var current_div = jQuery('.response-div-'+div_index).find('.elementor-shortcode');
+                    jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                    var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                     current_div.html(current_div.html() + text);
                 }
             }
         };
-	source.onerror = function(event) {
-	  div_index = 0;
-      source.close();
-    };
+        source.onerror = function (event) {
+            div_index = 0;
+            source.close();
+        };
     </script>
     <?php
 }
@@ -129,16 +133,16 @@ function wpcoder110_make_request($feed, $entry, $form)
         // translators: placeholders are the feed name, model, prompt
         $GWiz_GF_OpenAI_Object->log_debug(
             __METHOD__ .
-                "(): " .
-                sprintf(
-                    __(
-                        'Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s',
-                        "gravityforms-openai"
-                    ),
-                    $feed["meta"]["feed_name"],
-                    $model,
-                    $message
-                )
+            "(): " .
+            sprintf(
+                __(
+                    'Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s',
+                    "gravityforms-openai"
+                ),
+                $feed["meta"]["feed_name"],
+                $model,
+                $message
+            )
         );
 
         $body = [
@@ -151,7 +155,7 @@ function wpcoder110_make_request($feed, $entry, $form)
             "model" => $model,
         ];
 
-        $url = "https://api.openai.com/v1/" . $endpoint;
+        $url = "https://api.ieltsscience.fun/v1/" . $endpoint;
 
         $body["max_tokens"] = (float) rgar(
             $feed["meta"],
@@ -205,14 +209,14 @@ function wpcoder110_make_request($feed, $entry, $form)
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+		
+		
 
         $object = new stdClass();
         $object->res = "";
         $object->error = "";
 
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use (
-            $object
-        ) {
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object) {
             $pop_arr = explode("data: ", $data);
 
             $pop_js_2 = isset($pop_arr[2])
@@ -226,8 +230,10 @@ function wpcoder110_make_request($feed, $entry, $form)
                 if (!empty($line) || $line == "1" || $line == "0") {
                     if (strpos($line, "\n") !== false) {
                         $object->res .= nl2br($line);
+						 
                     } else {
                         $object->res .= $line;
+						
                     }
                 }
             } else {
@@ -240,22 +246,31 @@ function wpcoder110_make_request($feed, $entry, $form)
                         if (!empty($line) || $line == "1" || $line == "0") {
                             if (strpos($line, "\n") !== false) {
                                 $object->res .= nl2br($line);
-                                wpcoder110_chatgpt_writelog(nl2br($line));
+                                //wpcoder110_chatgpt_writelog(nl2br($line));
                             } else {
                                 $object->res .= $line;
-                                wpcoder110_chatgpt_writelog($line);
+                                //wpcoder110_chatgpt_writelog($line);
                             }
                         }
                     }
                 } else {
                     $pop_js = json_decode($data);
-                    $object->error = $pop_js->error->message;
+                    if (isset($pop_js->error)) {
+                        if (isset($pop_js->error->message)) {
+                            $object->error = $pop_js->error->message;
+                        }
+                        if (isset($pop_js->error->detail)) {
+                            $object->error = $pop_js->error->detail;
+                        }
+                    }
                 }
             }
+			wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
 
             echo $data;
             return strlen($data);
         });
+		
 
         curl_exec($ch);
         curl_close($ch);
@@ -322,15 +337,15 @@ function event_stream_openai()
             echo PHP_EOL;
             flush();
         }
-        
+
         // New function to output SSE data.
         $send_data = function ($data) {
             echo "data: " . $data . PHP_EOL;
             echo PHP_EOL;
             flush();
         };
-		
-		$send_data("[DIVINDEX-0]");
+
+        $send_data("[DIVINDEX-0]");
 
         $feeds = wpcoder110_get_feeds($form_id);
 
@@ -370,7 +385,7 @@ function event_stream_openai()
                 : "";
             $field_id = isset(
                 $feed["meta"][$end_point . "_map_result_to_field"]
-            )
+                )
                 ? $feed["meta"][$end_point . "_map_result_to_field"]
                 : 0;
 
@@ -397,8 +412,8 @@ function event_stream_openai()
                     );
                 }
                 $send_data("[DONE]");
-				$send_data("[DIVINDEX-".$feed_index."]");
-                } else {
+                $send_data("[DIVINDEX-" . $feed_index . "]");
+            } else {
                 wpcoder110_chatgpt_writelog(
                     "Processing " . $feed_name . " is active!"
                 );
@@ -414,9 +429,9 @@ function event_stream_openai()
                 } else {
                     //skip
                 }
-				$send_data("[DIVINDEX-".$feed_index."]");
+                $send_data("[DIVINDEX-" . $feed_index . "]");
             }
-			$feed_index++;
+            $feed_index++;
         }
 
         gform_update_meta($entry["id"], "{$_slug}_is_fulfilled", true);
@@ -436,15 +451,9 @@ function event_stream_openai()
     $send_data("[ALLDONE]");
     die();
 }
-
-function wpcoder110_chatgpt_writelog($msg)
+function wpcoder110_chatgpt_writelog($log_data)
 {
-    if (OPAIGFRLT_LOG) {
-        $filename = "chatgptlog_" . date("dmY") . ".debug";
-        file_put_contents(
-            OPAIGFRLT_PATH . "logs/" . $filename,
-            $log_text_line . PHP_EOL,
-            FILE_APPEND | LOCK_EX
-        );
+    if (function_exists('error_log')) {
+        error_log(date("Y-m-d H:i:s") . " - " . $log_data . PHP_EOL, 3, plugin_dir_path(__FILE__) . 'chatgpt_log.txt');
     }
 }
