@@ -155,7 +155,10 @@ function wpcoder110_make_request($feed, $entry, $form)
             "model" => $model,
         ];
 
-        $url = "https://api.ieltsscience.fun/v1/" . $endpoint;
+        // Use the user-specified API base if available, else use default
+		$api_base = rgar( $feed['meta'], 'api_base', 'https://api.openai.com/v1/' );
+
+		$url = $api_base . $endpoint;
 
         $body["max_tokens"] = (float) rgar(
             $feed["meta"],
