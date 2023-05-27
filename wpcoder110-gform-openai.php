@@ -56,7 +56,6 @@ function wpcoder110_ajax_calls()
         }
     </style>
     <script>
-
         var div_index = 0, div_index_str = '';
         const source = new EventSource("<?php echo admin_url(
             "admin-ajax.php"
@@ -156,9 +155,9 @@ function wpcoder110_make_request($feed, $entry, $form)
         ];
 
         // Use the user-specified API base if available, else use default
-		$api_base = rgar( $feed['meta'], 'api_base', 'https://api.openai.com/v1/' );
+        $api_base = rgar($feed['meta'], 'api_base', 'https://api.openai.com/v1/');
 
-		$url = $api_base . $endpoint;
+        $url = $api_base . $endpoint;
 
         $body["max_tokens"] = (float) rgar(
             $feed["meta"],
@@ -464,6 +463,10 @@ function event_stream_openai()
                     $entry = $returned_entry;
                     // Adding this feed to the list of processed feeds
                     $processed_feeds[] = $feed["id"];
+
+                    // Update the processed_feeds metadata after each feed is processed
+                    $meta[$_slug] = $processed_feeds;
+                    gform_update_meta($entry["id"], "processed_feeds", $meta);
                 } else {
                     //skip
                 }
