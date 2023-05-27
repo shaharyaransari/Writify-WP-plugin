@@ -11,9 +11,7 @@ defined("OPAIGFRLT_URL") or define("OPAIGFRLT_URL", plugin_dir_url(__FILE__));
 defined("OPAIGFRLT_PATH") or define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__));
 defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
 
-add_filter("gform_gravityforms-openai_pre_process_feeds", function ($feeds) {
-    return "";
-});
+add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
 
 function wpcoder110_get_feeds($form_id = null)
 {
@@ -33,8 +31,6 @@ function wpcoder110_get_feeds($form_id = null)
     foreach ($results as &$result) {
         $result["meta"] = json_decode($result["meta"], true);
     }
-
-    // wpcoder110_chatgpt_writelog(print_r($results, true));
 
     return $results;
 }
@@ -65,9 +61,8 @@ function wpcoder110_ajax_calls()
         source.onmessage = function (event) {
             if (event.data == "[ALLDONE]") {
                 source.close();
-            } else if (event.data == "[DIVINDEX-0]" || event.data == "[DIVINDEX-1]" || event.data == "[DIVINDEX-2]" || event.data == "[DIVINDEX-3]" || event.data == "[DIVINDEX-4]" || event.data == "[DIVINDEX-5]" || event.data == "[DIVINDEX-6]" || event.data == "[DIVINDEX-7]" || event.data == "[DIVINDEX-8]" || event.data == "[DIVINDEX-9]") {
-                div_index_str = event.data.replace("[DIVINDEX-", "");
-                div_index_str = div_index_str.replace("]", "");
+            } else if (event.data.startsWith("[DIVINDEX-")) {
+                div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
                 div_index = parseInt(div_index_str);
                 console.log(div_index);
                 jQuery('.response-div-' + (div_index)).css('display', 'flex');
@@ -76,9 +71,7 @@ function wpcoder110_ajax_calls()
 
             } else {
                 text = JSON.parse(event.data).choices[0].delta.content;
-                if (text === undefined) {
-
-                } else {
+                if (text !== undefined) {
                     text = text.replace(/(?:\r\n|\r|\n)/g, "<br />");
                     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
                     var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
@@ -219,8 +212,6 @@ function wpcoder110_make_request($feed, $entry, $form)
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
-
-
             $object = new stdClass();
             $object->res = "";
             $object->error = "";
@@ -255,10 +246,8 @@ function wpcoder110_make_request($feed, $entry, $form)
                             if (!empty($line) || $line == "1" || $line == "0") {
                                 if (strpos($line, "\n") !== false) {
                                     $object->res .= nl2br($line);
-                                    //wpcoder110_chatgpt_writelog(nl2br($line));
                                 } else {
                                     $object->res .= $line;
-                                    //wpcoder110_chatgpt_writelog($line);
                                 }
                             }
                         }
@@ -279,7 +268,6 @@ function wpcoder110_make_request($feed, $entry, $form)
                 echo $data;
                 return strlen($data);
             });
-
 
             curl_exec($ch);
             $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -303,7 +291,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                     $retry_count++;
                     if ($retry_count <= $max_retries) {
                         $retry = true;
-                        //sleep(1); // Optional: add sleep time before retrying
+                        sleep(3); // Optional: add sleep time before retrying
                         GFAPI::add_note(
                             $entry["id"],
                             0,
@@ -428,13 +416,11 @@ function event_stream_openai()
 
             // If this feed is inactive, set a flag and continue to the next feed.
             if (!$feed["is_active"]) {
-                //wpcoder110_chatgpt_writelog($feed_name . ' is inactive!');
                 $feeds_processed = true; // Mark that feeds were processed.
                 continue;
             }
 
             if (in_array((string) $feed["id"], $processed_feeds)) {
-                //wpcoder110_chatgpt_writelog($feed_name . ' is already processes!');
                 $lines = explode("<br />", $entry[$field_id]);
                 foreach ($lines as $line) {
                     $object = new stdClass();
