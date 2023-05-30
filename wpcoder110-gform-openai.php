@@ -50,9 +50,23 @@ function wpcoder110_ajax_calls()
         .elementor-shortcode {
             margin-top: 10px;
         }
+
+        .elementor-shortcode ol {
+            padding-left: 1rem;
+        }
+
+        .elementor-shortcode li {
+            padding-left: 5px;
+        }
+
+        .elementor-shortcode p {
+            white-space: pre-wrap;
+        }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
         var div_index = 0, div_index_str = '';
+        var buffer = ""; // Buffer for holding messages
         const source = new EventSource("<?php echo admin_url(
             "admin-ajax.php"
         ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
@@ -68,14 +82,23 @@ function wpcoder110_ajax_calls()
                 jQuery('.response-div-' + (div_index)).css('display', 'flex');
                 jQuery('.response-div-divider' + (div_index)).show();
             } else if (event.data == "[DONE]") {
-
+                // When a message is done, convert the buffer to HTML and display it
+                var html = marked.parse(buffer);
+                jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                current_div.html(html); // Replace the current HTML content with the processed markdown
+                // Clear the buffer
+                buffer = "";
             } else {
+                // Add the message to the buffer
                 text = JSON.parse(event.data).choices[0].delta.content;
                 if (text !== undefined) {
-                    text = text.replace(/(?:\r\n|\r|\n)/g, "<br />");
+                    buffer += text;
+                    // Convert the buffer to HTML and display it
+                    var html = marked.parse(buffer);
                     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
                     var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
-                    current_div.html(current_div.html() + text);
+                    current_div.html(html); // Replace the current HTML content with the processed markdown
                 }
             }
         };
