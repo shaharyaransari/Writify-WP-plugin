@@ -286,7 +286,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                         }
                     }
                 }
-                wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
+                //wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
 
                 echo $data;
                 return strlen($data);
@@ -460,9 +460,7 @@ function event_stream_openai()
                 $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             } else {
-                wpcoder110_chatgpt_writelog(
-                    "Processing " . $feed_name . " is active!"
-                );
+                //wpcoder110_chatgpt_writelog("Processing " . $feed_name . " is active!");
 
                 // All requirements are met; process feed.
                 $returned_entry = wpcoder110_make_request($feed, $entry, $form);
