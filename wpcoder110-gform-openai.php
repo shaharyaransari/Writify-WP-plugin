@@ -219,7 +219,7 @@ function wpcoder110_make_request($feed, $entry, $form)
         ];
 
         // Add retry mechanism
-        $max_retries = 10;
+        $max_retries = 150;
         $retry_count = 0;
 
         do {
@@ -251,13 +251,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                         ? $pop_js_2["choices"][0]["delta"]["content"]
                         : "";
                     if (!empty($line) || $line == "1" || $line == "0") {
-                        if (strpos($line, "\n") !== false) {
-                            $object->res .= nl2br($line);
-
-                        } else {
-                            $object->res .= $line;
-
-                        }
+                        $object->res .= $line;
                     }
                 } else {
                     if (isset($pop_arr[1])) {
@@ -267,11 +261,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                                 ? $pop_js["choices"][0]["delta"]["content"]
                                 : "";
                             if (!empty($line) || $line == "1" || $line == "0") {
-                                if (strpos($line, "\n") !== false) {
-                                    $object->res .= nl2br($line);
-                                } else {
-                                    $object->res .= $line;
-                                }
+                                $object->res .= $line;
                             }
                         }
                     } else {
@@ -314,7 +304,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                     $retry_count++;
                     if ($retry_count <= $max_retries) {
                         $retry = true;
-                        sleep(3); // Optional: add sleep time before retrying
+                        sleep(2); // Optional: add sleep time before retrying
                         GFAPI::add_note(
                             $entry["id"],
                             0,
