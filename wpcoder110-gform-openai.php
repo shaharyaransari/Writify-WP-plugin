@@ -105,6 +105,7 @@ function wpcoder110_ajax_calls()
         source.onerror = function (event) {
             div_index = 0;
             source.close();
+            jQuery('.error_message').css('display', 'flex');
         };
     </script>
     <?php
