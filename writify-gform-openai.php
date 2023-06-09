@@ -1,7 +1,7 @@
 <?php
 /**
- * Plugin Name:       Gform OpenAi Extender
- * Description:       Powered with AI and ChatGpt
+ * Plugin Name:       Writify
+ * Description:       Score IELTS Essays x GPT
  * Version:           1.0.0
  * Copyright: © 2023-2026 RLT
  */
@@ -13,7 +13,7 @@ defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
 
-function wpcoder110_get_feeds($form_id = null)
+function writify_get_feeds($form_id = null)
 {
     global $wpdb;
 
@@ -35,8 +35,8 @@ function wpcoder110_get_feeds($form_id = null)
     return $results;
 }
 
-add_action("wp_footer", "wpcoder110_ajax_calls", 9999);
-function wpcoder110_ajax_calls()
+add_action("wp_footer", "writify_ajax_calls", 9999);
+function writify_ajax_calls()
 {
     // Moved repeated code to a single function.
     $get_int_val = function ($key) {
@@ -111,7 +111,7 @@ function wpcoder110_ajax_calls()
     <?php
 }
 
-function wpcoder110_make_request($feed, $entry, $form)
+function writify_make_request($feed, $entry, $form)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
 
@@ -277,7 +277,7 @@ function wpcoder110_make_request($feed, $entry, $form)
                         }
                     }
                 }
-                //wpcoder110_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
+                //writify_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
 
                 echo $data;
                 return strlen($data);
@@ -386,7 +386,7 @@ function event_stream_openai()
 
         $send_data("[DIVINDEX-0]");
 
-        $feeds = wpcoder110_get_feeds($form_id);
+        $feeds = writify_get_feeds($form_id);
 
         if (empty($feeds)) {
             $send_data("[ALLDONE]");
@@ -451,10 +451,10 @@ function event_stream_openai()
                 $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             } else {
-                //wpcoder110_chatgpt_writelog("Processing " . $feed_name . " is active!");
+                //writify_chatgpt_writelog("Processing " . $feed_name . " is active!");
 
                 // All requirements are met; process feed.
-                $returned_entry = wpcoder110_make_request($feed, $entry, $form);
+                $returned_entry = writify_make_request($feed, $entry, $form);
 
                 // If returned value from the process feed call is an array containing an id, set the entry to its value.
                 if (is_array($returned_entry)) {
@@ -490,7 +490,7 @@ function event_stream_openai()
     $send_data("[ALLDONE]");
     die();
 }
-function wpcoder110_chatgpt_writelog($log_data)
+function writify_chatgpt_writelog($log_data)
 {
     if (function_exists('error_log')) {
         error_log(date("Y-m-d H:i:s") . " - " . $log_data . PHP_EOL, 3, plugin_dir_path(__FILE__) . 'chatgpt_log.txt');
