@@ -62,6 +62,7 @@ function writify_ajax_calls()
         .elementor-shortcode p {
             white-space: pre-wrap;
         }
+
 		li.upgrade_vocab {
             list-style: none;
             background-color: white;
@@ -70,18 +71,22 @@ function writify_ajax_calls()
             margin: 20px 0px 20px -15px;
             box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.2);
         }
+
 		span.original-vocab {
             color: #ffa600;
         }
+
         li.upgrade_vocab:not(.expanded):hover {
             background: #F0F2FC;
             transition-duration: 0.2s;
             cursor: pointer;
         }
+
         span.short-explanation {
             color: #6D758D;
             font-weight: 300;
         }
+
 		span.improved-vocab {
             background: #2551da;
             border-radius: 0.25rem;
@@ -99,6 +104,7 @@ function writify_ajax_calls()
             transition-duration: .2s;
             /* white-space: normal; */
         }
+
 		span.improved-vocab:hover {
             background: #02289e;
             cursor: pointer;
@@ -114,7 +120,7 @@ function addUpgradeVocabClass(div) {
     const listItems = div.find("li");
     const format = /".*" -\> ".*"\nExplanation: .*/;
 
-    listItems.each(function() {
+            listItems.each(function () {
         const text = jQuery(this).text().trim();
 
         // Check if the text matches the specified format
@@ -231,7 +237,7 @@ jQuery(this).find(".improved-vocab").click(function (event) {
 
 
 	// Add click event listener to the #accept_all button
-    jQuery("#accept_all").click(function() {
+        jQuery("#accept_all").click(function () {
         // Trigger the click event on all li.upgrade_vocab elements
         jQuery("li.upgrade_vocab").click();
     });
