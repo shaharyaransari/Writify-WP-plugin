@@ -112,9 +112,6 @@ function writify_ajax_calls()
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        var div_index = 0, div_index_str = '';
-        var buffer = ""; // Buffer for holding messages
-
         // Function to add the "upgrade_vocab" class to the <li> elements that match the format
         function addUpgradeVocabClass(div) {
             const listItems = div.find("li");
@@ -212,11 +209,13 @@ function writify_ajax_calls()
                     jQuery(this).find(".improved-vocab").click(function (event) {
                         event.stopPropagation(); // Prevent the event from bubbling up to the document
 
-                        // Extract the original and improved vocab from the text
-                        const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
-                        if (matches) {
-                            const originalVocab = matches[1];
-                            const improvedVocab = matches[2];
+                        // Extract the original vocab from the updated text
+                        const originalVocabMatch = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span>/);
+                        if (originalVocabMatch) {
+                            const originalVocab = originalVocabMatch[1];
+
+                            // Extract the improved vocab from the clicked element
+                            const improvedVocab = jQuery(this).text();
 
                             // Get the text in the #my-text div and remove the <mark> tags
                             const myTextDiv = jQuery("#my-text");
@@ -234,8 +233,6 @@ function writify_ajax_calls()
                             jQuery(this).closest("li.upgrade_vocab").fadeOut();
                         }
                     });
-
-
 
                     // Add a click event listener to the document
                     jQuery(document).click(function () {
@@ -256,6 +253,10 @@ function writify_ajax_calls()
             // Trigger the click event on all li.upgrade_vocab elements
             jQuery("li.upgrade_vocab").click();
         });
+    </script>
+    <script>
+        var div_index = 0, div_index_str = '';
+        var buffer = ""; // Buffer for holding messages
 
         const source = new EventSource("<?php echo admin_url(
             "admin-ajax.php"
