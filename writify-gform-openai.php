@@ -63,7 +63,7 @@ function writify_ajax_calls()
             white-space: pre-wrap;
         }
 
-		li.upgrade_vocab {
+        li.upgrade_vocab {
             list-style: none;
             background-color: white;
             border-radius: 8px;
@@ -72,7 +72,7 @@ function writify_ajax_calls()
             box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.2);
         }
 
-		span.original-vocab {
+        span.original-vocab {
             color: #ffa600;
         }
 
@@ -87,7 +87,7 @@ function writify_ajax_calls()
             font-weight: 300;
         }
 
-		span.improved-vocab {
+        span.improved-vocab {
             background: #2551da;
             border-radius: 0.25rem;
             color: #FFFFFF;
@@ -105,7 +105,7 @@ function writify_ajax_calls()
             /* white-space: normal; */
         }
 
-		span.improved-vocab:hover {
+        span.improved-vocab:hover {
             background: #02289e;
             cursor: pointer;
         }
@@ -115,132 +115,132 @@ function writify_ajax_calls()
         var div_index = 0, div_index_str = '';
         var buffer = ""; // Buffer for holding messages
 
-    // Function to add the "upgrade_vocab" class to the <li> elements that match the format
-function addUpgradeVocabClass(div) {
-    const listItems = div.find("li");
-    const format = /".*" -\> ".*"\nExplanation: .*/;
+        // Function to add the "upgrade_vocab" class to the <li> elements that match the format
+        function addUpgradeVocabClass(div) {
+            const listItems = div.find("li");
+            const format = /".*" -\> ".*"\nExplanation: .*/;
 
             listItems.each(function () {
-        const text = jQuery(this).text().trim();
+                const text = jQuery(this).text().trim();
 
-        // Check if the text matches the specified format
-        if (format.test(text)) {
-            const explanation = text.match(/Explanation: (.*)/)[1];
-            const firstSentence = explanation.match(/[^\.!\?]+[\.!\?]+/g)[0];
+                // Check if the text matches the specified format
+                if (format.test(text)) {
+                    const explanation = text.match(/Explanation: (.*)/)[1];
+                    const firstSentence = explanation.match(/[^\.!\?]+[\.!\?]+/g)[0];
 
-            // Update the HTML of the current list item with the modified text
-            const updatedText = text.replace(/"(.*)" -\> "(.*)"\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span><span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$3</span>`);
-            jQuery(this).html(updatedText);
+                    // Update the HTML of the current list item with the modified text
+                    const updatedText = text.replace(/"(.*)" -\> "(.*)"\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span><span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$3</span>`);
+                    jQuery(this).html(updatedText);
 
-            // Hide certain elements and show others within the list item
-            jQuery(this).find(".arrow, .improved-vocab, .explanation").hide();
-            jQuery(this).find(".original-vocab, .short-explanation").show();
+                    // Hide certain elements and show others within the list item
+                    jQuery(this).find(".arrow, .improved-vocab, .explanation").hide();
+                    jQuery(this).find(".original-vocab, .short-explanation").slideDown(200);
 
-            // Add the "upgrade_vocab" class to the list item
-            jQuery(this).addClass("upgrade_vocab");
+                    // Add the "upgrade_vocab" class to the list item
+                    jQuery(this).addClass("upgrade_vocab");
 
-            // Add a click event listener to the list item
-            jQuery(this).click(function (event) {
-                event.stopPropagation();
+                    // Add a click event listener to the list item
+                    jQuery(this).click(function (event) {
+                        event.stopPropagation();
 
-                if (!jQuery(this).hasClass("expanded")) {
-                    // Hide elements and show the short explanation of other list items with the "upgrade_vocab" class
-                    jQuery("li.upgrade_vocab").not(this).find(".arrow, .improved-vocab, .explanation").hide();
-                    jQuery("li.upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
-                    jQuery("li.upgrade_vocab").not(this).removeClass("expanded");
+                        if (!jQuery(this).hasClass("expanded")) {
+                            // Hide elements and show the short explanation of other list items with the "upgrade_vocab" class
+                            jQuery("li.upgrade_vocab").not(this).find(".arrow, .improved-vocab, .explanation").hide();
+                            jQuery("li.upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
+                            jQuery("li.upgrade_vocab").not(this).removeClass("expanded");
 
-                    const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
+                            const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
 
-                    if (matches) {
-                        const originalVocab = matches[1];
+                            if (matches) {
+                                const originalVocab = matches[1];
 
-                        // Retrieve the content of the "#my-text" element
-                        const myTextDiv = jQuery("#my-text");
-                        const myText = myTextDiv.html();
+                                // Retrieve the content of the "#my-text" element
+                                const myTextDiv = jQuery("#my-text");
+                                const myText = myTextDiv.html();
 
-                        // Remove any existing highlighting from the content
-                        const unhighlightedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
-                        myTextDiv.html(unhighlightedText);
+                                // Remove any existing highlighting from the content
+                                const unhighlightedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
+                                myTextDiv.html(unhighlightedText);
 
-                        // Highlight the occurrences of the original vocabulary in the content
-                        const highlightedText = unhighlightedText.replace(new RegExp(originalVocab, "g"), `<mark>${originalVocab}</mark>`);
-                        myTextDiv.html(highlightedText);
+                                // Highlight the occurrences of the original vocabulary in the content
+                                const highlightedText = unhighlightedText.replace(new RegExp(originalVocab, "g"), `<mark>${originalVocab}</mark>`);
+                                myTextDiv.html(highlightedText);
 
-                        // Scroll to the first occurrence of the highlighted vocabulary
-                        const firstMark = myTextDiv.find("mark:first");
+                                // Scroll to the first occurrence of the highlighted vocabulary
+                                const firstMark = myTextDiv.find("mark:first");
 
-                        if (firstMark.length) {
-                            const divTop = myTextDiv.position().top;
-                            const markTop = firstMark.position().top;
-                            myTextDiv.animate({
-                                scrollTop: markTop - divTop - 40
-                            }, 500);
+                                if (firstMark.length) {
+                                    const divTop = myTextDiv.position().top;
+                                    const markTop = firstMark.position().top;
+                                    myTextDiv.animate({
+                                        scrollTop: markTop - divTop - 40
+                                    }, 500);
+                                }
+
+                                // Set up a hover event for the highlighted vocabulary to remove the highlighting
+                                const marks = myTextDiv.find("mark");
+
+                                marks.hover(function () {
+                                    jQuery(this).fadeOut(500, function () {
+                                        const originalWord = jQuery(this).text();
+                                        jQuery(this).replaceWith(originalWord);
+                                    });
+                                });
+
+                                // Show or hide specific elements within the clicked list item
+                                jQuery(this).find(".original-vocab, .arrow, .improved-vocab, .explanation").slideDown(200);
+                                jQuery(this).find(".short-explanation").hide();
+
+                                // Add the "expanded" class to the clicked list item
+                                jQuery(this).addClass("expanded");
+                            }
                         }
+                    });
 
-                        // Set up a hover event for the highlighted vocabulary to remove the highlighting
-                        const marks = myTextDiv.find("mark");
+                    // Add click event listener to the .improved-vocab elements
+                    jQuery(this).find(".improved-vocab").click(function (event) {
+                        event.stopPropagation(); // Prevent the event from bubbling up to the document
 
-                        marks.hover(function () {
-                            jQuery(this).fadeOut(500, function () {
-                                const originalWord = jQuery(this).text();
-                                jQuery(this).replaceWith(originalWord);
-                            });
-                        });
+                        // Extract the original and improved vocab from the text
+                        const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
+                        if (matches) {
+                            const originalVocab = matches[1];
+                            const improvedVocab = matches[2];
 
-                        // Show or hide specific elements within the clicked list item
-                        jQuery(this).find(".original-vocab, .arrow, .improved-vocab, .explanation").show();
-                        jQuery(this).find(".short-explanation").hide();
+                            // Get the text in the #my-text div and remove the <mark> tags
+                            const myTextDiv = jQuery("#my-text");
+                            const myText = myTextDiv.html();
+                            const unmarkedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
 
-                        // Add the "expanded" class to the clicked list item
-                        jQuery(this).addClass("expanded");
-                    }
+                            // Replace the original vocab with the improved vocab in the unmarked text and make the improved vocab bold
+                            const updatedText = unmarkedText.replace(new RegExp(originalVocab, "g"), `<b>${improvedVocab}</b>`);
+                            myTextDiv.html(updatedText);
+
+                            // Make the li.upgrade_vocab element disappear with a fade out animation
+                            jQuery(this).closest("li.upgrade_vocab").fadeOut();
+                        }
+                    });
+
+
+                    // Add a click event listener to the document
+                    jQuery(document).click(function () {
+                        // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
+                        jQuery("li.upgrade_vocab").find(".arrow, .improved-vocab, .explanation").hide();
+                        jQuery("li.upgrade_vocab").find(".short-explanation").show();
+
+                        // Remove the "expanded" class from all list items with the "upgrade_vocab" class
+                        jQuery("li.upgrade_vocab").removeClass("expanded");
+                    });
                 }
             });
-			
-			// Add click event listener to the .improved-vocab elements
-jQuery(this).find(".improved-vocab").click(function (event) {
-    event.stopPropagation(); // Prevent the event from bubbling up to the document
-
-    // Extract the original and improved vocab from the text
-    const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
-    if (matches) {
-        const originalVocab = matches[1];
-        const improvedVocab = matches[2];
-
-        // Get the text in the #my-text div and remove the <mark> tags
-        const myTextDiv = jQuery("#my-text");
-        const myText = myTextDiv.html();
-        const unmarkedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
-
-        // Replace the original vocab with the improved vocab in the unmarked text and make the improved vocab bold
-        const updatedText = unmarkedText.replace(new RegExp(originalVocab, "g"), `<b>${improvedVocab}</b>`);
-        myTextDiv.html(updatedText);
-
-        // Make the li.upgrade_vocab element disappear with a fade out animation
-        jQuery(this).closest("li.upgrade_vocab").fadeOut();
-    }
-});
-
-
-            // Add a click event listener to the document
-            jQuery(document).click(function () {
-                // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
-                jQuery("li.upgrade_vocab").find(".arrow, .improved-vocab, .explanation").hide();
-                jQuery("li.upgrade_vocab").find(".short-explanation").show();
-
-                // Remove the "expanded" class from all list items with the "upgrade_vocab" class
-                jQuery("li.upgrade_vocab").removeClass("expanded");
-            });
         }
-    });
-}
 
 
-	// Add click event listener to the #accept_all button
+        // Add click event listener to the #accept_all button
         jQuery("#accept_all").click(function () {
-        // Trigger the click event on all li.upgrade_vocab elements
-        jQuery("li.upgrade_vocab").click();
-    });
+            // Trigger the click event on all li.upgrade_vocab elements
+            jQuery("li.improved-vocab").click();
+        });
 
         const source = new EventSource("<?php echo admin_url(
             "admin-ajax.php"
@@ -263,8 +263,8 @@ jQuery(this).find(".improved-vocab").click(function (event) {
                 var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                 current_div.html(html); // Replace the current HTML content with the processed markdown
 
-            // Add the "upgrade_vocab" class to the <li> elements that match the format
-            addUpgradeVocabClass(current_div);
+                // Add the "upgrade_vocab" class to the <li> elements that match the format
+                addUpgradeVocabClass(current_div);
 
                 // Clear the buffer
                 buffer = "";
@@ -279,9 +279,9 @@ jQuery(this).find(".improved-vocab").click(function (event) {
                     var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                     current_div.html(html); // Replace the current HTML content with the processed markdown
 
-                // Add the "upgrade_vocab" class to the <li> elements that match the format
-                addUpgradeVocabClass(current_div);
-            }
+                    // Add the "upgrade_vocab" class to the <li> elements that match the format
+                    addUpgradeVocabClass(current_div);
+                }
             }
         };
         source.onerror = function (event) {
