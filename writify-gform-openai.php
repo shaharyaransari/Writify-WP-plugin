@@ -118,7 +118,7 @@ function writify_ajax_calls()
         // Function to add the "upgrade_vocab" class to the <li> elements that match the format
         function addUpgradeVocabClass(div) {
             const listItems = div.find("li");
-            const format = /".*" -\> ".*"\nExplanation: .*/;
+            const format = /".*" -\> ".*"(\sor\s".*")?\nExplanation: .*/;
 
             listItems.each(function () {
                 const text = jQuery(this).text().trim();
@@ -128,12 +128,19 @@ function writify_ajax_calls()
                     const explanation = text.match(/Explanation: (.*)/)[1];
                     const firstSentence = explanation.match(/[^\.!\?]+[\.!\?]+/g)[0];
 
+                    // Check if there is a second improved vocab
+                    const secondImprovedVocabMatch = text.match(/or "(.*)"/);
+                    let secondImprovedVocab = '';
+                    if (secondImprovedVocabMatch) {
+                        secondImprovedVocab = `<span class="or"> or </span><span class="improved-vocab">${secondImprovedVocabMatch[1]}</span>`;
+                    }
+
                     // Update the HTML of the current list item with the modified text
-                    const updatedText = text.replace(/"(.*)" -\> "(.*)"\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span><span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$3</span>`);
+                    const updatedText = text.replace(/"(.*)" -\> "(.*?)"(\sor\s".*")?\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
                     jQuery(this).html(updatedText);
 
                     // Hide certain elements and show others within the list item
-                    jQuery(this).find(".arrow, .improved-vocab, .explanation").hide();
+                    jQuery(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
                     jQuery(this).find(".original-vocab, .short-explanation").slideDown(200);
 
                     // Add the "upgrade_vocab" class to the list item
@@ -145,7 +152,7 @@ function writify_ajax_calls()
 
                         if (!jQuery(this).hasClass("expanded")) {
                             // Hide elements and show the short explanation of other list items with the "upgrade_vocab" class
-                            jQuery("li.upgrade_vocab").not(this).find(".arrow, .improved-vocab, .explanation").hide();
+                            jQuery("li.upgrade_vocab").not(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
                             jQuery("li.upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
                             jQuery("li.upgrade_vocab").not(this).removeClass("expanded");
 
@@ -160,10 +167,14 @@ function writify_ajax_calls()
 
                                 // Remove any existing highlighting from the content
                                 const unhighlightedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
-                                myTextDiv.html(unhighlightedText);
+
+                                // Escape any special characters in the original vocab
+                                const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
                                 // Highlight the occurrences of the original vocabulary in the content
-                                const highlightedText = unhighlightedText.replace(new RegExp(originalVocab, "g"), `<mark>${originalVocab}</mark>`);
+                                const highlightedText = unhighlightedText.replace(new RegExp(escapedOriginalVocab, "gi"), function (matched) {
+                                    return `<mark>${matched}</mark>`;
+                                });
                                 myTextDiv.html(highlightedText);
 
                                 // Scroll to the first occurrence of the highlighted vocabulary
@@ -188,7 +199,7 @@ function writify_ajax_calls()
                                 });
 
                                 // Show or hide specific elements within the clicked list item
-                                jQuery(this).find(".original-vocab, .arrow, .improved-vocab, .explanation").slideDown(200);
+                                jQuery(this).find(".original-vocab, .arrow, .or, .improved-vocab, .explanation").slideDown(200);
                                 jQuery(this).find(".short-explanation").hide();
 
                                 // Add the "expanded" class to the clicked list item
@@ -212,8 +223,11 @@ function writify_ajax_calls()
                             const myText = myTextDiv.html();
                             const unmarkedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
 
+                            // Escape any special characters in the original vocab
+                            const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
                             // Replace the original vocab with the improved vocab in the unmarked text and make the improved vocab bold
-                            const updatedText = unmarkedText.replace(new RegExp(originalVocab, "g"), `<b>${improvedVocab}</b>`);
+                            const updatedText = unmarkedText.replace(new RegExp(escapedOriginalVocab, "gi"), `<b>${improvedVocab}</b>`);
                             myTextDiv.html(updatedText);
 
                             // Make the li.upgrade_vocab element disappear with a fade out animation
@@ -222,10 +236,11 @@ function writify_ajax_calls()
                     });
 
 
+
                     // Add a click event listener to the document
                     jQuery(document).click(function () {
                         // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
-                        jQuery("li.upgrade_vocab").find(".arrow, .improved-vocab, .explanation").hide();
+                        jQuery("li.upgrade_vocab").find(".arrow, .or, .improved-vocab, .explanation").hide();
                         jQuery("li.upgrade_vocab").find(".short-explanation").show();
 
                         // Remove the "expanded" class from all list items with the "upgrade_vocab" class
@@ -239,7 +254,7 @@ function writify_ajax_calls()
         // Add click event listener to the #accept_all button
         jQuery("#accept_all").click(function () {
             // Trigger the click event on all li.upgrade_vocab elements
-            jQuery("li.improved-vocab").click();
+            jQuery("li.upgrade_vocab").click();
         });
 
         const source = new EventSource("<?php echo admin_url(
