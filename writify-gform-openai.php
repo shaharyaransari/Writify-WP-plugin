@@ -63,7 +63,7 @@ function writify_ajax_calls()
             white-space: pre-wrap;
         }
 
-        li.upgrade_vocab {
+        .upgrade_vocab {
             list-style: none;
             background-color: white;
             border-radius: 8px;
@@ -76,7 +76,7 @@ function writify_ajax_calls()
             color: #ffa600;
         }
 
-        li.upgrade_vocab:not(.expanded):hover {
+        .upgrade_vocab:not(.expanded):hover {
             background: #F0F2FC;
             transition-duration: 0.2s;
             cursor: pointer;
@@ -112,7 +112,6 @@ function writify_ajax_calls()
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
-        // Function to add the "upgrade_vocab" class to the <li> elements that match the format
         function addUpgradeVocabClass(div) {
             const listItems = div.find("li");
             const format = /".*" -\> ".*"(\sor\s".*")?\nExplanation: .*/;
@@ -136,22 +135,26 @@ function writify_ajax_calls()
                     const updatedText = text.replace(/"(.*)" -\> "(.*?)"(\sor\s".*")?\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
                     jQuery(this).html(updatedText);
 
-                    // Hide certain elements and show others within the list item
-                    jQuery(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
-                    jQuery(this).find(".original-vocab, .short-explanation").slideDown(200);
+                    // Replace the list item with a div and add the "upgrade_vocab" class to the div
+                    const newDiv = jQuery('<div/>', {
+                        class: 'upgrade_vocab',
+                        html: this.innerHTML
+                    });
+                    jQuery(this).replaceWith(newDiv);
 
-                    // Add the "upgrade_vocab" class to the list item
-                    jQuery(this).addClass("upgrade_vocab");
+                    // Hide certain elements and show others within the div
+                    newDiv.find(".arrow, .or, .improved-vocab, .explanation").hide();
+                    newDiv.find(".original-vocab, .short-explanation").slideDown(200);
 
-                    // Add a click event listener to the list item
-                    jQuery(this).click(function (event) {
+                    // Add a click event listener to the div
+                    newDiv.click(function (event) {
                         event.stopPropagation();
 
                         if (!jQuery(this).hasClass("expanded")) {
                             // Hide elements and show the short explanation of other list items with the "upgrade_vocab" class
-                            jQuery("li.upgrade_vocab").not(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
-                            jQuery("li.upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
-                            jQuery("li.upgrade_vocab").not(this).removeClass("expanded");
+                            jQuery(".upgrade_vocab").not(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
+                            jQuery(".upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
+                            jQuery(".upgrade_vocab").not(this).removeClass("expanded");
 
                             const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
 
@@ -206,7 +209,7 @@ function writify_ajax_calls()
                     });
 
                     // Add click event listener to the .improved-vocab elements
-                    jQuery(this).find(".improved-vocab").click(function (event) {
+                    newDiv.find(".improved-vocab").click(function (event) {
                         event.stopPropagation(); // Prevent the event from bubbling up to the document
 
                         // Extract the original vocab from the updated text
@@ -230,18 +233,18 @@ function writify_ajax_calls()
                             myTextDiv.html(updatedText);
 
                             // Make the li.upgrade_vocab element disappear with a fade out animation
-                            jQuery(this).closest("li.upgrade_vocab").fadeOut();
+                            jQuery(this).closest(".upgrade_vocab").fadeOut();
                         }
                     });
 
                     // Add a click event listener to the document
                     jQuery(document).click(function () {
                         // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
-                        jQuery("li.upgrade_vocab").find(".arrow, .or, .improved-vocab, .explanation").hide();
-                        jQuery("li.upgrade_vocab").find(".short-explanation").show();
+                        jQuery(".upgrade_vocab").find(".arrow, .or, .improved-vocab, .explanation").hide();
+                        jQuery(".upgrade_vocab").find(".short-explanation").show();
 
                         // Remove the "expanded" class from all list items with the "upgrade_vocab" class
-                        jQuery("li.upgrade_vocab").removeClass("expanded");
+                        jQuery(".upgrade_vocab").removeClass("expanded");
                     });
                 }
             });
@@ -251,7 +254,7 @@ function writify_ajax_calls()
         // Add click event listener to the #accept_all button
         jQuery("#accept_all").click(function () {
             // Trigger the click event on all li.upgrade_vocab elements
-            jQuery("li.upgrade_vocab").click();
+            jQuery("div.improved-vocab").click();
         });
     </script>
     <script>
