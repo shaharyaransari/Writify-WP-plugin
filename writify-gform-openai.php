@@ -109,8 +109,17 @@ function writify_ajax_calls()
             background: #02289e;
             cursor: pointer;
         }
+
+        mark {
+            background-color: #ffa600;
+            transition: opacity 0.2s;
+            padding: 4px;
+            border-radius: 8px;
+        }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://bi1101.github.io/marked.min.js"></script>
+    <script
+        src="https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&amp;packageName=%40grammarly%2Feditor-sdk"></script>
     <script>
         // Store frequently used selectors
         const $document = jQuery(document);
