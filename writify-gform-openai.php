@@ -260,7 +260,7 @@ function writify_ajax_calls()
         // Add a click event listener to the document
         $document.on('click', function () {
             // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
-            jQuery(".upgrade_vocab").find(".arrow, .or, .improved - vocab, .explanation").hide();
+            jQuery(".upgrade_vocab").find(".arrow, .or, .improved-vocab, .explanation").hide();
             jQuery(".upgrade_vocab").find(".short-explanation").show();
 
             // Remove the "expanded" class from all list items with the "upgrade_vocab" class
