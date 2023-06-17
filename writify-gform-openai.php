@@ -293,8 +293,10 @@ function writify_ajax_calls()
                 var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                 current_div.html(html); // Replace the current HTML content with the processed markdown
 
-                // Add the "upgrade_vocab" class to the <li> elements that match the format
-                addUpgradeVocabClass(current_div);
+                jQuery.when(current_div.html(html)).then(function () {
+                    // Add the "upgrade_vocab" class to the <li> elements that match the format
+                    addUpgradeVocabClass(current_div);
+                });
 
                 // Clear the buffer
                 buffer = "";
