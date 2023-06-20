@@ -514,6 +514,13 @@ function writify_make_request($feed, $entry, $form)
                     $form,
                     $object->res
                 );
+
+                // Update the entry in the database
+                $result = GFAPI::update_entry($entry);
+                if (is_wp_error($result)) {
+                    error_log('Failed to update entry: ' . $result->get_error_message());
+                }
+                
             } else {
                 if ($http_status !== 200 || !empty($object->error)) {
                     $retry_count++;
