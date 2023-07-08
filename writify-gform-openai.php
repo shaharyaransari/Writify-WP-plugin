@@ -117,7 +117,7 @@ function writify_ajax_calls()
             border-radius: 8px;
         }
     </style>
-    <script src="https://bi1101.github.io/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js"></script>
     <script
         src="https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&amp;packageName=%40grammarly%2Feditor-sdk"></script>
     <script>
@@ -281,6 +281,7 @@ function writify_ajax_calls()
     <script>
         var div_index = 0, div_index_str = '';
         var buffer = ""; // Buffer for holding messages
+        var md = new Remarkable();
 
         const source = new EventSource("<?php echo admin_url(
             "admin-ajax.php"
@@ -298,7 +299,7 @@ function writify_ajax_calls()
                 jQuery('.response-div-divider' + (div_index)).show();
             } else if (event.data == "[DONE]") {
                 // When a message is done, convert the buffer to HTML and display it
-                var html = marked.parse(buffer);
+                var html = md.render(buffer);
                 jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
                 var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                 current_div.html(html); // Replace the current HTML content with the processed markdown
@@ -316,7 +317,7 @@ function writify_ajax_calls()
                 if (text !== undefined) {
                     buffer += text;
                     // Convert the buffer to HTML and display it
-                    var html = marked.parse(buffer);
+                    var html = md.render(buffer);
                     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
                     var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                     current_div.html(html); // Replace the current HTML content with the processed markdown
