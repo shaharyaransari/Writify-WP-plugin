@@ -468,40 +468,25 @@ function writify_make_request($feed, $entry, $form)
             curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object) {
                 $pop_arr = explode("data: ", $data);
 
-                $pop_js_2 = isset($pop_arr[2])
-                    ? json_decode($pop_arr[2], true)
-                    : "";
-
-                if (isset($pop_js_2["choices"])) {
-                    $line = isset($pop_js_2["choices"][0]["delta"]["content"])
-                        ? $pop_js_2["choices"][0]["delta"]["content"]
-                        : "";
-                    if (!empty($line) || $line == "1" || $line == "0") {
-                        $object->res .= $line;
-                    }
-                } else {
-                    if (isset($pop_arr[1])) {
-                        $pop_js = json_decode($pop_arr[1], true);
-                        if (isset($pop_js["choices"])) {
-                            $line = isset($pop_js["choices"][0]["delta"]["content"])
-                                ? $pop_js["choices"][0]["delta"]["content"]
-                                : "";
-                            if (!empty($line) || $line == "1" || $line == "0") {
-                                $object->res .= $line;
-                            }
+                foreach ($pop_arr as $pop_item) {
+                    $pop_js = json_decode($pop_item, true);
+                    if (isset($pop_js["choices"])) {
+                        $line = isset($pop_js["choices"][0]["delta"]["content"])
+                            ? $pop_js["choices"][0]["delta"]["content"]
+                            : "";
+                        if (!empty($line) || $line == "1" || $line == "0") {
+                            $object->res .= $line;
                         }
-                    } else {
-                        $pop_js = json_decode($data);
-                        if (isset($pop_js->error)) {
-                            if (isset($pop_js->error->message)) {
-                                $object->error = $pop_js->error->message;
-                            }
-                            if (isset($pop_js->error->detail)) {
-                                $object->error = $pop_js->error->detail;
-                            }
+                    } elseif (isset($pop_js->error)) {
+                        if (isset($pop_js->error->message)) {
+                            $object->error = $pop_js->error->message;
+                        }
+                        if (isset($pop_js->error->detail)) {
+                            $object->error = $pop_js->error->detail;
                         }
                     }
                 }
+
                 //writify_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
 
                 echo $data;
