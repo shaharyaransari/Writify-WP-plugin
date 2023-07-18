@@ -38,6 +38,14 @@ function writify_get_feeds($form_id = null)
 add_action("wp_footer", "writify_ajax_calls", 9999);
 function writify_ajax_calls()
 {
+    global $post;
+    $slug = $post->post_name;
+
+    // Check if the page slug begins with "result"
+    if (strpos($slug, 'result') !== 0) {
+        return;
+    }
+
     // Moved repeated code to a single function.
     $get_int_val = function ($key) {
         return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
@@ -321,9 +329,6 @@ function writify_ajax_calls()
                     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
                     var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
                     current_div.html(html); // Replace the current HTML content with the processed markdown
-
-                    // Add the "upgrade_vocab" class to the <li> elements that match the format
-                    addUpgradeVocabClass(current_div);
                 }
             }
         };
