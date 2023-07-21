@@ -23,7 +23,7 @@ function writify_get_feeds($form_id = null)
 
     $sql = $wpdb->prepare(
         "SELECT * FROM {$wpdb->prefix}gf_addon_feed
-                               WHERE addon_slug=%s {$form_filter} ORDER BY `feed_order`, `id` ASC",
+        WHERE addon_slug=%s {$form_filter} ORDER BY `feed_order`, `id` ASC",
         "gravityforms-openai"
     );
 
@@ -99,18 +99,8 @@ function writify_ajax_calls()
             background: #2551da;
             border-radius: 0.25rem;
             color: #FFFFFF;
-            /* display: inline-block; */
-            /* line-height: calc(1.5px * var(--rem)); */
-            /* margin: 0 calc(0.5px * var(--rem)) calc(0.5px * var(--rem)) 0; */
-            /* max-width: 100%; */
-            /* overflow: hidden; */
-            /* overflow-wrap: break-word; */
             padding: 0.25rem 0.5rem;
-            /* position: relative; */
-            /* text-align: left; */
-            /* text-overflow: ellipsis; */
             transition-duration: .2s;
-            /* white-space: normal; */
         }
 
         span.improved-vocab:hover {
