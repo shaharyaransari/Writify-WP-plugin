@@ -183,10 +183,10 @@ function writify_ajax_calls()
                         const firstMark = $myTextDiv.find("mark:first");
 
                         if (firstMark.length) {
-                            const divTop = $myTextDiv.position().top;
-                            const markTop = firstMark.position().top;
-                            $myTextDiv.animate({
-                                scrollTop: markTop - divTop - 40
+                            const currentScroll = $myTextDiv.scrollTop();
+    						const markTopRelative = firstMark.position().top;
+    						$myTextDiv.animate({
+        						scrollTop: currentScroll + markTopRelative - 140
                             }, 500);
                         }
 
