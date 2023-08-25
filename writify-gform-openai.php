@@ -521,8 +521,8 @@ function writify_make_request($feed, $entry, $form)
                         GFAPI::add_note(
                             $entry["id"],
                             0,
-                            "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->res
+                            "OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->error
                         );
                         $GWiz_GF_OpenAI_Object->add_feed_error(
                             $object->error,
@@ -534,8 +534,8 @@ function writify_make_request($feed, $entry, $form)
                         GFAPI::add_note(
                             $entry["id"],
                             0,
-                            "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->res
+                            "OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->error
                         );
                         $GWiz_GF_OpenAI_Object->add_feed_error(
                             $object->error,
