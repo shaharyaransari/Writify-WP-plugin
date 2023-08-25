@@ -184,9 +184,9 @@ function writify_ajax_calls()
 
                         if (firstMark.length) {
                             const currentScroll = $myTextDiv.scrollTop();
-    						const markTopRelative = firstMark.position().top;
-    						$myTextDiv.animate({
-        						scrollTop: currentScroll + markTopRelative - 140
+                            const markTopRelative = firstMark.position().top;
+                            $myTextDiv.animate({
+                                scrollTop: currentScroll + markTopRelative - 140
                             }, 500);
                         }
 
@@ -464,6 +464,10 @@ function writify_make_request($feed, $entry, $form)
                 $pop_arr = explode("data: ", $data);
 
                 foreach ($pop_arr as $pop_item) {
+                    if (trim($pop_item) === '[DONE]') {
+                        continue; // Skip this iteration and don't process or echo the [DONE] segment.
+                    }
+
                     $pop_js = json_decode($pop_item, true);
                     if (isset($pop_js["choices"])) {
                         $line = isset($pop_js["choices"][0]["delta"]["content"])
@@ -480,11 +484,12 @@ function writify_make_request($feed, $entry, $form)
                             $object->error = $pop_js->error->detail;
                         }
                     }
+
+                    echo "data: " . $pop_item . PHP_EOL;
                 }
 
-                //writify_chatgpt_writelog(trim($data)); // Add this line to log the raw JSON
+                //writify_chatgpt_writelog(trim($data)); // Log the raw JSON
 
-                echo $data;
                 return strlen($data);
             });
 
@@ -668,7 +673,7 @@ function event_stream_openai()
                 // All requirements are met; process feed.
                 $returned_entry = writify_make_request($feed, $entry, $form);
 
-                // If returned value from the process feed call is an array containing an id, set the entry to its value.
+                // If returned value from the processed feed call is an array containing an id, set the entry to its value.
                 if (is_array($returned_entry)) {
                     $entry = $returned_entry;
                     // Adding this feed to the list of processed feeds
@@ -680,6 +685,7 @@ function event_stream_openai()
                 } else {
                     //skip
                 }
+                $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             }
             $feed_index++;
