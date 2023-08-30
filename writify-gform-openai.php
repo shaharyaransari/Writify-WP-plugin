@@ -476,14 +476,14 @@ function writify_make_request($feed, $entry, $form)
                         if (!empty($line) || $line == "1" || $line == "0") {
                             $object->res .= $line;
                         }
-                    } elseif (isset($pop_js->error)) {
-                        if (isset($pop_js->error->message)) {
-                            $object->error = $pop_js->error->message;
+                    } elseif (isset($pop_js['error'])) {
+                        if (isset($pop_js['error']['message'])) {
+                            $object->error = $pop_js['error']['message'];
                         }
-                        if (isset($pop_js->error->detail)) {
-                            $object->error = $pop_js->error->detail;
+                        if (isset($pop_js['error']['detail'])) {
+                            $object->error = $pop_js['error']['detail'];
                         }
-                    }
+                    }                    
 
                     echo "data: " . $pop_item . PHP_EOL;
                 }
