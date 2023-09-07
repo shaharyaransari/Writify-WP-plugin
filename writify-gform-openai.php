@@ -59,10 +59,6 @@ function writify_ajax_calls()
             margin-top: 10px;
         }
 
-        .elementor-shortcode ol {
-            padding-left: 1rem;
-        }
-
         .elementor-shortcode li {
             padding-left: 5px;
         }
