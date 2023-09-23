@@ -387,10 +387,20 @@ function writify_make_request($feed, $entry, $form)
             "model" => $model,
         ];
 
-        // Use the user-specified API base if available, else use default
-        $api_base = rgar($feed['meta'], 'api_base', 'https://api.openai.com/v1/');
+        // Identify the user role
+		$current_user = wp_get_current_user();
+		$user_roles = $current_user->roles;
+		$primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
 
-        $url = $api_base . $endpoint;
+		// Get the saved API base for the user role from the feed settings
+		$option_name = 'api_base_' . $primary_role;
+		$api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+
+		$url = $api_base . $endpoint;
+
+		if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
+			$url .= '?api-version=2023-03-15-preview';
+		}
 
         $body["max_tokens"] = (float) rgar(
             $feed["meta"],
