@@ -388,19 +388,19 @@ function writify_make_request($feed, $entry, $form)
         ];
 
         // Identify the user role
-		$current_user = wp_get_current_user();
-		$user_roles = $current_user->roles;
-		$primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
+        $current_user = wp_get_current_user();
+        $user_roles = $current_user->roles;
+        $primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
 
-		// Get the saved API base for the user role from the feed settings
-		$option_name = 'api_base_' . $primary_role;
-		$api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+        // Get the saved API base for the user role from the feed settings
+        $option_name = 'api_base_' . $primary_role;
+        $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
 
-		$url = $api_base . $endpoint;
+        $url = $api_base . $endpoint;
 
-		if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
-			$url .= '?api-version=2023-03-15-preview';
-		}
+        if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
+            $url .= '?api-version=2023-03-15-preview';
+        }
 
         $body["max_tokens"] = (float) rgar(
             $feed["meta"],
@@ -441,14 +441,14 @@ function writify_make_request($feed, $entry, $form)
         $body["stream"] = true;
 
         $header = [
-			"Content-Type: " . $headers["Content-Type"],
-			"Authorization: " . $headers["Authorization"],
-			"api-key: " . $headers["api-key"]
-		];
+            "Content-Type: " . $headers["Content-Type"],
+            "Authorization: " . $headers["Authorization"],
+            "api-key: " . $headers["api-key"]
+        ];
 
-		if (isset($headers['OpenAI-Organization'])) {
-			$header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
-		}
+        if (isset($headers['OpenAI-Organization'])) {
+            $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
+        }
 
         // Add retry mechanism
         $max_retries = 150;
@@ -494,7 +494,7 @@ function writify_make_request($feed, $entry, $form)
                         if (isset($pop_js['error']['detail'])) {
                             $object->error = $pop_js['error']['detail'];
                         }
-                    }                    
+                    }
 
                     echo "data: " . $pop_item . PHP_EOL;
                 }
