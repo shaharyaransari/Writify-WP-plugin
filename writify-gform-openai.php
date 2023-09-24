@@ -441,9 +441,14 @@ function writify_make_request($feed, $entry, $form)
         $body["stream"] = true;
 
         $header = [
-            "Content-Type: " . $headers["Content-Type"],
-            "Authorization: " . $headers["Authorization"],
-        ];
+			"Content-Type: " . $headers["Content-Type"],
+			"Authorization: " . $headers["Authorization"],
+			"api-key: " . $headers["api-key"]
+		];
+
+		if (isset($headers['OpenAI-Organization'])) {
+			$header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
+		}
 
         // Add retry mechanism
         $max_retries = 150;
