@@ -35,6 +35,18 @@ function writify_get_feeds($form_id = null)
     return $results;
 }
 
+function writify_register_routes()
+{
+    register_rest_route('writify/v1', '/event_stream_openai/', array(
+        'methods' => 'GET',
+        'callback' => 'event_stream_openai',
+        'permission_callback' => '__return_true',
+        // If you want to restrict access, modify this
+    )
+    );
+}
+add_action('rest_api_init', 'writify_register_routes');
+
 add_action("wp_footer", "writify_ajax_calls", 9999);
 function writify_ajax_calls()
 {
@@ -53,6 +65,8 @@ function writify_ajax_calls()
 
     $form_id = $get_int_val("form_id");
     $entry_id = $get_int_val("entry_id");
+    $nonce = wp_create_nonce('wp_rest');
+    writify_chatgpt_writelog("Created nonce: " . $nonce);
     ?>
     <style>
         .elementor-shortcode {
@@ -277,52 +291,69 @@ function writify_ajax_calls()
         var buffer = ""; // Buffer for holding messages
         var md = new Remarkable();
 
-        const source = new EventSource("<?php echo admin_url(
-            "admin-ajax.php"
-        ); ?>?action=event_stream_openai&form_id=<?php echo $form_id; ?>&entry_id=<?php echo $entry_id; ?>&nonce=<?php echo wp_create_nonce(
-                   "ssevent_stream_openai"
-               ); ?>");
-        source.onmessage = function (event) {
-            if (event.data == "[ALLDONE]") {
-                source.close();
-            } else if (event.data.startsWith("[DIVINDEX-")) {
-                div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
-                div_index = parseInt(div_index_str);
-                console.log(div_index);
-                jQuery('.response-div-' + (div_index)).css('display', 'flex');
-                jQuery('.response-div-divider' + (div_index)).show();
-            } else if (event.data == "[DONE]") {
-                // When a message is done, convert the buffer to HTML and display it
-                var html = md.render(buffer);
-                jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
-                current_div.html(html); // Replace the current HTML content with the processed markdown
+        // Fetch the user role using fetch API
+        fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'action=writify_get_user_role'
+        })
+            .then(response => response.json())
+            .then(data => {
+                const userRole = data.role;
 
-                jQuery.when(current_div.html(html)).then(function () {
-                    // Add the "upgrade_vocab" class to the <li> elements that match the format
-                    addUpgradeVocabClass(current_div);
-                });
+                // Now initiate the EventSource with the userRole in the query params
+                const formId = <?php echo json_encode($form_id); ?>;
+                const entryId = <?php echo json_encode($entry_id); ?>;
+                const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&user_role=${userRole}`;
 
-                // Clear the buffer
-                buffer = "";
-            } else {
-                // Add the message to the buffer
-                text = JSON.parse(event.data).choices[0].delta.content;
-                if (text !== undefined) {
-                    buffer += text;
-                    // Convert the buffer to HTML and display it
-                    var html = md.render(buffer);
-                    jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                    var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
-                    current_div.html(html); // Replace the current HTML content with the processed markdown
-                }
-            }
-        };
-        source.onerror = function (event) {
-            div_index = 0;
-            source.close();
-            jQuery('.error_message').css('display', 'flex');
-        };
+                const source = new EventSource(sourceUrl);
+                source.onmessage = function (event) {
+                    if (event.data == "[ALLDONE]") {
+                        source.close();
+                    } else if (event.data.startsWith("[DIVINDEX-")) {
+                        div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
+                        div_index = parseInt(div_index_str);
+                        console.log(div_index);
+                        jQuery('.response-div-' + (div_index)).css('display', 'flex');
+                        jQuery('.response-div-divider' + (div_index)).show();
+                    } else if (event.data == "[DONE]") {
+                        // When a message is done, convert the buffer to HTML and display it
+                        var html = md.render(buffer);
+                        jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                        var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                        current_div.html(html); // Replace the current HTML content with the processed markdown
+
+                        jQuery.when(current_div.html(html)).then(function () {
+                            // Add the "upgrade_vocab" class to the <li> elements that match the format
+                            addUpgradeVocabClass(current_div);
+                        });
+
+                        // Clear the buffer
+                        buffer = "";
+                    } else {
+                        // Add the message to the buffer
+                        text = JSON.parse(event.data).choices[0].delta.content;
+                        if (text !== undefined) {
+                            buffer += text;
+                            // Convert the buffer to HTML and display it
+                            var html = md.render(buffer);
+                            jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                            var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                            current_div.html(html); // Replace the current HTML content with the processed markdown
+                        }
+                    }
+                };
+                source.onerror = function (event) {
+                    div_index = 0;
+                    source.close();
+                    jQuery('.error_message').css('display', 'flex');
+                };
+            })
+            .catch(error => {
+                console.error("Error fetching user role:", error);
+            });
     </script>
     <?php
 }
@@ -390,11 +421,18 @@ function writify_make_request($feed, $entry, $form)
         // Identify the user role
         $current_user = wp_get_current_user();
         $user_roles = $current_user->roles;
-        $primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
+        // Identify the user role from the API request
+        $primary_role = isset($_REQUEST["user_role"]) ? sanitize_text_field($_REQUEST["user_role"]) : 'default';
+
+        // Log primary role for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("Primary role: " . $primary_role);
 
         // Get the saved API base for the user role from the feed settings
         $option_name = 'api_base_' . $primary_role;
         $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+
+        // Log API base for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
 
         $url = $api_base . $endpoint;
 
@@ -581,9 +619,22 @@ function writify_make_request($feed, $entry, $form)
 
 add_action("wp_ajax_event_stream_openai", "event_stream_openai");
 add_action("wp_ajax_nopriv_event_stream_openai", "event_stream_openai");
+add_action('wp_ajax_writify_get_user_role', 'writify_get_user_role');
+add_action('wp_ajax_nopriv_writify_get_user_role', 'writify_get_user_role');
 
-function event_stream_openai()
+function writify_get_user_role()
 {
+    $current_user = wp_get_current_user();
+    $user_roles = $current_user->roles;
+    $primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
+
+    echo json_encode(['role' => $primary_role]);
+    wp_die();
+}
+
+function event_stream_openai(WP_REST_Request $request)
+{
+
     if (!headers_sent()) {
         @ini_set("zlib.output_compression", 0);
         ob_implicit_flush(true);
