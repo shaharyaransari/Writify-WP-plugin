@@ -181,12 +181,15 @@ function writify_ajax_calls()
                         const originalVocab = matches[1];
 
                         // Remove any existing highlighting from the content
-                        const unhighlightedText = $myTextDiv.html().replace(/<mark>(.*?)<\/mark>/g, "$1");
-
+                        const markElements = $myTextDiv.find("mark");
+                        if (markElements.length > 0) {
+                            markElements.contents().unwrap();
+                        }
                         // Escape any special characters in the original vocab
                         const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
                         // Highlight the occurrences of the original vocabulary in the content
+                        const unhighlightedText = $myTextDiv.html();
                         const highlightedText = unhighlightedText.replace(new RegExp(escapedOriginalVocab, "gi"), function (matched) {
                             return `<mark>${matched}</mark>`;
                         });
@@ -236,9 +239,14 @@ function writify_ajax_calls()
                     // Extract the improved vocab from the clicked element
                     const improvedVocab = jQuery(this).text();
 
-                    // Get the text in the #my-text div and remove the <mark> tags
-                    const myText = $myTextDiv.html();
-                    const unmarkedText = myText.replace(/<mark>(.*?)<\/mark>/g, "$1");
+                    // Unwrap the <mark> tags
+                    $myTextDiv.find('mark').each(function () {
+                        const text = jQuery(this).text();
+                        jQuery(this).replaceWith(text);
+                    });
+
+                    // Get the unmarked text in the #my-text div
+                    let unmarkedText = $myTextDiv.html();
 
                     // Escape any special characters in the original vocab
                     const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
