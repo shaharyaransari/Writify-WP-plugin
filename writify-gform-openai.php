@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.0.3
+ * Version:           1.0.4
  * Copyright: © 2023-2026 RLT
  */
 
@@ -37,12 +37,15 @@ function writify_get_feeds($form_id = null)
 
 function writify_register_routes()
 {
-    register_rest_route('writify/v1', '/event_stream_openai/', array(
-        'methods' => 'GET',
-        'callback' => 'event_stream_openai',
-        'permission_callback' => '__return_true',
-        // If you want to restrict access, modify this
-    )
+    register_rest_route(
+        'writify/v1',
+        '/event_stream_openai/',
+        array(
+            'methods' => 'GET',
+            'callback' => 'event_stream_openai',
+            'permission_callback' => '__return_true',
+            // If you want to restrict access, modify this
+        )
     );
 }
 add_action('rest_api_init', 'writify_register_routes');
@@ -301,12 +304,12 @@ function writify_ajax_calls()
         })
             .then(response => response.json())
             .then(data => {
-                const userRole = data.role;
+                const userIdentifier = data.role;
 
-                // Now initiate the EventSource with the userRole in the query params
+                // Now initiate the EventSource with the userIdentifier in the query params
                 const formId = <?php echo json_encode($form_id); ?>;
                 const entryId = <?php echo json_encode($entry_id); ?>;
-                const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&user_role=${userRole}`;
+                const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&user_identifier=${userIdentifier}`;
 
                 const source = new EventSource(sourceUrl);
                 source.onmessage = function (event) {
@@ -418,17 +421,14 @@ function writify_make_request($feed, $entry, $form)
             "model" => $model,
         ];
 
-        // Identify the user role
-        $current_user = wp_get_current_user();
-        $user_roles = $current_user->roles;
-        // Identify the user role from the API request
-        $primary_role = isset($_REQUEST["user_role"]) ? sanitize_text_field($_REQUEST["user_role"]) : 'default';
+        // Identify the user role or membership title from the API request
+        $primary_identifier = isset($_REQUEST["user_identifier"]) ? sanitize_text_field($_REQUEST["user_identifier"]) : 'default';
 
-        // Log primary role for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("Primary role: " . $primary_role);
+        // Log primary role or membership title for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
 
-        // Get the saved API base for the user role from the feed settings
-        $option_name = 'api_base_' . $primary_role;
+        // Get the saved API base for the user role or membership from the feed settings
+        $option_name = 'api_base_' . $primary_identifier;
         $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
 
         // Log API base for debugging
@@ -625,10 +625,37 @@ add_action('wp_ajax_nopriv_writify_get_user_role', 'writify_get_user_role');
 function writify_get_user_role()
 {
     $current_user = wp_get_current_user();
-    $user_roles = $current_user->roles;
-    $primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
 
-    echo json_encode(['role' => $primary_role]);
+    // Default role/membership
+    $primary_identifier = 'default';
+
+    $has_memberpress = false; // This flag will indicate if MemberPress is active and there are memberships available
+
+    // Check for MemberPress memberships
+    if (class_exists('MeprUser')) {
+        $mepr_user = new MeprUser($current_user->ID);
+        $active_memberships = $mepr_user->active_product_subscriptions();
+
+        if (!empty($active_memberships)) {
+            $primary_membership = get_post($active_memberships[0]);
+            if ($primary_membership) {
+                $primary_identifier = $primary_membership->post_title;
+                $has_memberpress = true; // User has a membership
+            }
+        }
+    }
+
+    // If MemberPress is active but the user doesn't have a membership, use the special case
+    if ($has_memberpress && $primary_identifier == 'default') {
+        $primary_identifier = 'no_membership';
+    }
+
+    // Fallback to roles if no memberships are found and MemberPress is not active
+    if (!$has_memberpress && !empty($current_user->roles)) {
+        $primary_identifier = $current_user->roles[0];
+    }
+
+    echo json_encode(['role' => $primary_identifier]);
     wp_die();
 }
 
