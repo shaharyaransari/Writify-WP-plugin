@@ -434,6 +434,9 @@ function writify_make_request($feed, $entry, $form)
         // Log API base for debugging
         $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
 
+        // Log the entirety of feed['meta'] for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("Feed Meta Data: " . print_r($feed['meta'], true));
+
         $url = $api_base . $endpoint;
 
         if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
@@ -629,28 +632,25 @@ function writify_get_user_role()
     // Default role/membership
     $primary_identifier = 'default';
 
-    $has_memberpress = false; // This flag will indicate if MemberPress is active and there are memberships available
+    $has_memberpress = false; // This flag will indicate if MemberPress is active
 
     // Check for MemberPress memberships
     if (class_exists('MeprUser')) {
+        $has_memberpress = true; // Set the flag to true as MemberPress is active
         $mepr_user = new MeprUser($current_user->ID);
         $active_memberships = $mepr_user->active_product_subscriptions();
 
         if (!empty($active_memberships)) {
             $primary_membership = get_post($active_memberships[0]);
             if ($primary_membership) {
-                $primary_identifier = $primary_membership->post_title;
-                $has_memberpress = true; // User has a membership
+                $primary_identifier = $primary_membership->post_name; // User has a membership
             }
+        } else {
+            $primary_identifier = 'No_membership'; // No active membership
         }
     }
 
-    // If MemberPress is active but the user doesn't have a membership, use the special case
-    if ($has_memberpress && $primary_identifier == 'default') {
-        $primary_identifier = 'no_membership';
-    }
-
-    // Fallback to roles if no memberships are found and MemberPress is not active
+    // Fallback to roles if MemberPress is not active
     if (!$has_memberpress && !empty($current_user->roles)) {
         $primary_identifier = $current_user->roles[0];
     }
