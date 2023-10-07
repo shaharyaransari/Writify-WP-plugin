@@ -137,10 +137,13 @@ function writify_ajax_calls()
         const $myTextDiv = jQuery("#my-text");
 
         function formatText(text) {
-            const format = /".*" -\> ".*"(\sor\s".*")?\nExplanation: .*/;
+            // Updated regex to include "Giải thích"
+            const format = /".*" -\> ".*"(\sor\s".*")?\n(Explanation|Giải thích): .*/;
             if (!format.test(text)) return null;
 
-            const explanation = text.match(/Explanation: (.*)/)[1];
+            // Extract explanation using either "Explanation" or "Giải thích"
+            const explanationMatch = text.match(/(Explanation|Giải thích): (.*)/);
+            const explanation = explanationMatch && explanationMatch[2] ? explanationMatch[2] : '';
             const firstSentence = explanation.match(/[^\.!\?]+[\.!\?]+/g)[0];
             const secondImprovedVocabMatch = text.match(/or "(.*)"/);
             let secondImprovedVocab = '';
