@@ -786,10 +786,10 @@ function event_stream_openai(WP_REST_Request $request)
                     //skip
                 }
                 $send_data("[DONE]");
+                // Refresh feeds after processing each feed
+                $feeds = writify_get_feeds($form_id);
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             }
-            // Refresh feeds after processing each feed
-            $feeds = writify_get_feeds($form_id);
             $feed_index++;
         }
 
