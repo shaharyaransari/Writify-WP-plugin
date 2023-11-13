@@ -375,6 +375,25 @@ function writify_ajax_calls()
     <?php
 }
 
+function writify_enqueue_scripts() {
+    wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.0', true);
+
+    // Get current user's data
+    $current_user = wp_get_current_user();
+
+    // Prepare data to pass to the script
+    $data_to_pass = array(
+        'firstName' => $current_user->user_firstname,
+        'lastName' => $current_user->user_lastname
+    );
+
+    // Localize the script with the data
+    wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
+}
+
+add_action('wp_enqueue_scripts', 'writify_enqueue_scripts');
+
+
 function writify_make_request($feed, $entry, $form)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
