@@ -50,10 +50,14 @@ function writify_register_routes()
 }
 add_action('rest_api_init', 'writify_register_routes');
 
-add_action("wp_footer", "writify_ajax_calls", 9999);
-function writify_ajax_calls()
+add_action("wp_footer", "enqueue_scripts_on_result_pages", 9999);
+function enqueue_scripts_on_result_pages()
 {
     global $post;
+    if (!$post) {
+        return;
+    }
+
     $slug = $post->post_name;
 
     // Check if the page slug begins with "result"
@@ -61,318 +65,35 @@ function writify_ajax_calls()
         return;
     }
 
-    // Moved repeated code to a single function.
-    $get_int_val = function ($key) {
-        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
-    };
+    // Enqueue Remarkable Markdown Parser
+    wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
 
-    $form_id = $get_int_val("form_id");
-    $entry_id = $get_int_val("entry_id");
+    // Enqueue Grammarly Editor SDK
+    wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
+
+    // Enqueue the text interaction handler script
+    wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
+
+    // Enqueue the user role event stream script
+    wp_enqueue_script('writify-event-stream', plugin_dir_url(__FILE__) . 'Assets/js/writify_event_stream.js', array('jquery'), '1.0.0', true);
+
+    // Enqueue the result page styles
+    wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
+
+    // Pass dynamic data to the script
+    $form_id = isset($_GET['form_id']) ? (int) sanitize_text_field($_GET['form_id']) : 0;
+    $entry_id = isset($_GET['entry_id']) ? (int) sanitize_text_field($_GET['entry_id']) : 0;
     $nonce = wp_create_nonce('wp_rest');
-    writify_chatgpt_writelog("Created nonce: " . $nonce);
-    ?>
-    <style>
-        .elementor-shortcode {
-            margin-top: 10px;
-        }
 
-        .elementor-shortcode li {
-            padding-left: 5px;
-        }
+    $data_to_pass = array(
+        'form_id' => $form_id,
+        'entry_id' => $entry_id,
+        'nonce' => $nonce
+    );
 
-        .elementor-shortcode p {
-            white-space: pre-wrap;
-        }
+    wp_localize_script('writify-event-stream', 'writifyAjaxData', $data_to_pass);
 
-        .upgrade_vocab {
-            list-style: none;
-            background-color: white;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0px 20px -15px;
-            box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.2);
-        }
-
-        span.original-vocab {
-            color: #ffa600;
-        }
-
-        .upgrade_vocab:not(.expanded):hover {
-            background: #F0F2FC;
-            transition-duration: 0.2s;
-            cursor: pointer;
-        }
-
-        span.short-explanation {
-            color: #6D758D;
-            font-weight: 300;
-        }
-
-        span.improved-vocab {
-            background: #2551da;
-            border-radius: 0.25rem;
-            color: #FFFFFF;
-            padding: 0.25rem 0.5rem;
-            transition-duration: .2s;
-        }
-
-        span.improved-vocab:hover {
-            background: #02289e;
-            cursor: pointer;
-        }
-
-        mark {
-            background-color: #ffa600;
-            transition: opacity 0.2s;
-            padding: 4px;
-            border-radius: 8px;
-        }
-    </style>
-    <script src="https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js"></script>
-    <script
-        src="https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&amp;packageName=%40grammarly%2Feditor-sdk"></script>
-    <sciprt>
-
-    </sciprt>
-    <script>
-        // Store frequently used selectors
-        const $document = jQuery(document);
-        const $myTextDiv = jQuery("#my-text");
-
-        function formatText(text) {
-            // Updated regex to include "Giải thích"
-            const format = /".*" -\> ".*"(\sor\s".*")?\n(Explanation|Giải thích): .*/;
-            if (!format.test(text)) return null;
-
-            // Extract explanation using either "Explanation" or "Giải thích"
-            const explanationMatch = text.match(/(Explanation|Giải thích): (.*)/);
-            const explanation = explanationMatch && explanationMatch[2] ? explanationMatch[2] : '';
-            const firstSentence = explanation.match(/[^\.!\?]+[\.!\?]+/g)[0];
-            const secondImprovedVocabMatch = text.match(/or "(.*)"/);
-            let secondImprovedVocab = '';
-            if (secondImprovedVocabMatch) {
-                secondImprovedVocab = `<span class="or"> or </span><span class="improved-vocab">${secondImprovedVocabMatch[1]}</span>`;
-            }
-
-            return text.replace(/"(.*)" -\> "(.*?)"(\sor\s".*")?\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
-        }
-
-        function createNewDivWithClass(html) {
-            return jQuery('<div/>', {
-                class: 'upgrade_vocab',
-                html: html
-            });
-        }
-
-        function hideAndShowElements($newDiv) {
-            const $elementsToHide = $newDiv.find(".arrow, .or, .improved-vocab, .explanation");
-            const $elementsToShow = $newDiv.find(".original-vocab, .short-explanation");
-            $elementsToHide.hide();
-            $elementsToShow.slideDown(200);
-        }
-
-        function addClickEventListenerToDiv($newDiv, updatedText) {
-            $newDiv.on('click', function (event) {
-                event.stopPropagation();
-
-                if (!jQuery(this).hasClass("expanded")) {
-                    // Hide elements and show the short explanation of other list items with the "upgrade_vocab" class
-                    jQuery(".upgrade_vocab").not(this).find(".arrow, .or, .improved-vocab, .explanation").hide();
-                    jQuery(".upgrade_vocab").not(this).find(".original-vocab, .short-explanation").show();
-                    jQuery(".upgrade_vocab").not(this).removeClass("expanded");
-
-                    const matches = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span> <span class="improved-vocab">(.*?)<\/span>/);
-
-                    if (matches) {
-                        const originalVocab = matches[1];
-
-                        // Remove any existing highlighting from the content
-                        const markElements = $myTextDiv.find("mark");
-                        if (markElements.length > 0) {
-                            markElements.contents().unwrap();
-                        }
-                        // Escape any special characters in the original vocab
-                        const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-                        // Highlight the occurrences of the original vocabulary in the content
-                        const unhighlightedText = $myTextDiv.html();
-                        const highlightedText = unhighlightedText.replace(new RegExp(escapedOriginalVocab, "gi"), function (matched) {
-                            return `<mark>${matched}</mark>`;
-                        });
-                        $myTextDiv.html(highlightedText);
-
-                        // Scroll to the first occurrence of the highlighted vocabulary
-                        const firstMark = $myTextDiv.find("mark:first");
-
-                        if (firstMark.length) {
-                            const currentScroll = $myTextDiv.scrollTop();
-                            const markTopRelative = firstMark.position().top;
-                            $myTextDiv.animate({
-                                scrollTop: currentScroll + markTopRelative - 140
-                            }, 500);
-                        }
-
-                        // Set up a hover event for the highlighted vocabulary to remove the highlighting
-                        const marks = $myTextDiv.find("mark");
-
-                        marks.hover(function () {
-                            jQuery(this).fadeOut(500, function () {
-                                const originalWord = jQuery(this).text();
-                                jQuery(this).replaceWith(originalWord);
-                            });
-                        });
-
-                        // Show or hide specific elements within the clicked list item
-                        jQuery(this).find(".original-vocab, .arrow, .or, .improved-vocab, .explanation").slideDown(200);
-                        jQuery(this).find(".short-explanation").hide();
-
-                        // Add the "expanded" class to the clicked list item
-                        jQuery(this).addClass("expanded");
-                    }
-                }
-            });
-        }
-
-        function addClickEventListenerToImprovedVocab($newDiv, updatedText) {
-            $newDiv.find(".improved-vocab").on('click', function (event) {
-                event.stopPropagation(); // Prevent the event from bubbling up to the document
-
-                // Extract the original vocab from the updated text
-                const originalVocabMatch = updatedText.match(/<span class="original-vocab">(.*?)<\/span><span class="arrow">-\><\/span>/);
-                if (originalVocabMatch) {
-                    const originalVocab = originalVocabMatch[1];
-
-                    // Extract the improved vocab from the clicked element
-                    const improvedVocab = jQuery(this).text();
-
-                    // Unwrap the <mark> tags
-                    $myTextDiv.find('mark').each(function () {
-                        const text = jQuery(this).text();
-                        jQuery(this).replaceWith(text);
-                    });
-
-                    // Get the unmarked text in the #my-text div
-                    let unmarkedText = $myTextDiv.html();
-
-                    // Escape any special characters in the original vocab
-                    const escapedOriginalVocab = originalVocab.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-                    // Replace the original vocab with the improved vocab in the unmarked text and make the improved vocab bold
-                    const updatedText = unmarkedText.replace(new RegExp(escapedOriginalVocab, "gi"), `<b>${improvedVocab}</b>`);
-                    $myTextDiv.html(updatedText);
-
-                    // Make the li.upgrade_vocab element disappear with a fade out animation
-                    jQuery(this).closest(".upgrade_vocab").fadeOut();
-                }
-            });
-        }
-
-        function addUpgradeVocabClass(div) {
-            const listItems = div.find("li");
-
-            listItems.each(function () {
-                const $this = jQuery(this);
-                const text = $this.text().trim();
-                const updatedText = formatText(text);
-
-                if (updatedText) {
-                    $this.html(updatedText);
-                    const $newDiv = createNewDivWithClass(this.innerHTML);
-                    $this.replaceWith($newDiv);
-                    hideAndShowElements($newDiv);
-                    addClickEventListenerToDiv($newDiv, updatedText);
-                    addClickEventListenerToImprovedVocab($newDiv, updatedText);
-                }
-            });
-        }
-
-        // Add click event listener to the #accept_all button
-        jQuery("#accept_all").on('click', function () {
-            // Trigger the click event on all li.upgrade_vocab elements
-            jQuery("div.improved-vocab").click();
-        });
-
-        // Add a click event listener to the document
-        $document.on('click', function () {
-            // Hide the arrow, improved vocab, explanation, and show the short explanation of all list items with the "upgrade_vocab" class
-            jQuery(".upgrade_vocab").find(".arrow, .or, .improved-vocab, .explanation").hide();
-            jQuery(".upgrade_vocab").find(".short-explanation").show();
-
-            // Remove the "expanded" class from all list items with the "upgrade_vocab" class
-            jQuery(".upgrade_vocab").removeClass("expanded");
-        });
-
-    </script>
-    <script>
-        var div_index = 0, div_index_str = '';
-        var buffer = ""; // Buffer for holding messages
-        var md = new Remarkable();
-
-        // Fetch the user role using fetch API
-        fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-            },
-            body: 'action=writify_get_user_role'
-        })
-            .then(response => response.json())
-            .then(data => {
-                const userIdentifier = data.role;
-
-                // Now initiate the EventSource with the userIdentifier in the query params
-                const formId = <?php echo json_encode($form_id); ?>;
-                const entryId = <?php echo json_encode($entry_id); ?>;
-                const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&user_identifier=${userIdentifier}`;
-
-                const source = new EventSource(sourceUrl);
-                source.onmessage = function (event) {
-                    if (event.data == "[ALLDONE]") {
-                        source.close();
-                    } else if (event.data.startsWith("[DIVINDEX-")) {
-                        div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
-                        div_index = parseInt(div_index_str);
-                        console.log(div_index);
-                        jQuery('.response-div-' + (div_index)).css('display', 'flex');
-                        jQuery('.response-div-divider' + (div_index)).show();
-                    } else if (event.data == "[DONE]") {
-                        // When a message is done, convert the buffer to HTML and display it
-                        var html = md.render(buffer);
-                        jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                        var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
-                        current_div.html(html); // Replace the current HTML content with the processed markdown
-
-                        jQuery.when(current_div.html(html)).then(function () {
-                            // Add the "upgrade_vocab" class to the <li> elements that match the format
-                            addUpgradeVocabClass(current_div);
-                        });
-
-                        // Clear the buffer
-                        buffer = "";
-                    } else {
-                        // Add the message to the buffer
-                        text = JSON.parse(event.data).choices[0].delta.content;
-                        if (text !== undefined) {
-                            buffer += text;
-                            // Convert the buffer to HTML and display it
-                            var html = md.render(buffer);
-                            jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                            var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
-                            current_div.html(html); // Replace the current HTML content with the processed markdown
-                        }
-                    }
-                };
-                source.onerror = function (event) {
-                    div_index = 0;
-                    source.close();
-                    jQuery('.error_message').css('display', 'flex');
-                };
-            })
-            .catch(error => {
-                console.error("Error fetching user role:", error);
-            });
-    </script>
-    <?php
+    // Additional inline scripts here if necessary
 }
 
 function writify_enqueue_scripts()

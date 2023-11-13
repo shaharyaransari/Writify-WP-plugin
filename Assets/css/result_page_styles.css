@@ -1,0 +1,55 @@
+.elementor-shortcode {
+    margin-top: 10px;
+}
+
+.elementor-shortcode li {
+    padding-left: 5px;
+}
+
+.elementor-shortcode p {
+    white-space: pre-wrap;
+}
+
+.upgrade_vocab {
+    list-style: none;
+    background-color: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0px 20px -15px;
+    box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.2);
+}
+
+span.original-vocab {
+    color: #ffa600;
+}
+
+.upgrade_vocab:not(.expanded):hover {
+    background: #F0F2FC;
+    transition-duration: 0.2s;
+    cursor: pointer;
+}
+
+span.short-explanation {
+    color: #6D758D;
+    font-weight: 300;
+}
+
+span.improved-vocab {
+    background: #2551da;
+    border-radius: 0.25rem;
+    color: #FFFFFF;
+    padding: 0.25rem 0.5rem;
+    transition-duration: .2s;
+}
+
+span.improved-vocab:hover {
+    background: #02289e;
+    cursor: pointer;
+}
+
+mark {
+    background-color: #ffa600;
+    transition: opacity 0.2s;
+    padding: 4px;
+    border-radius: 8px;
+}
