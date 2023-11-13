@@ -499,6 +499,10 @@ function writify_make_request($feed, $entry, $form)
         $max_retries = 20;
         $retry_count = 0;
 
+        // Get the timeout setting from the feed meta, with a fallback default
+        $default_timeout = rgar(rgar($this->default_settings, $endpoint), 'timeout', 180); // Default to 180 seconds if not set
+        $timeout = (int) rgar($feed["meta"], $endpoint . "_timeout", $default_timeout);
+
         do {
             $retry = false;
 
@@ -525,6 +529,8 @@ function writify_make_request($feed, $entry, $form)
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+            // Set the dynamic timeout
+            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 
             // Log the Request Details
             $GWiz_GF_OpenAI_Object->log_debug("Request URL: " . $url);
