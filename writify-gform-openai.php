@@ -50,14 +50,10 @@ function writify_register_routes()
 }
 add_action('rest_api_init', 'writify_register_routes');
 
-add_action("wp_footer", "enqueue_scripts_on_result_pages", 9999);
-function enqueue_scripts_on_result_pages()
+add_action("wp_footer", "writify_enqueue_scripts_footer", 9999);
+function writify_enqueue_scripts_footer()
 {
     global $post;
-    if (!$post) {
-        return;
-    }
-
     $slug = $post->post_name;
 
     // Check if the page slug begins with "result"
@@ -65,35 +61,86 @@ function enqueue_scripts_on_result_pages()
         return;
     }
 
-    // Enqueue Remarkable Markdown Parser
-    wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
+    // Moved repeated code to a single function.
+    $get_int_val = function ($key) {
+        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
+    };
 
-    // Enqueue Grammarly Editor SDK
-    wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
-
-    // Enqueue the text interaction handler script
-    wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
-
-    // Enqueue the user role event stream script
-    wp_enqueue_script('writify-event-stream', plugin_dir_url(__FILE__) . 'Assets/js/writify_event_stream.js', array('jquery'), '1.0.0', true);
-
-    // Enqueue the result page styles
-    wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
-
-    // Pass dynamic data to the script
-    $form_id = isset($_GET['form_id']) ? (int) sanitize_text_field($_GET['form_id']) : 0;
-    $entry_id = isset($_GET['entry_id']) ? (int) sanitize_text_field($_GET['entry_id']) : 0;
+    $form_id = $get_int_val("form_id");
+    $entry_id = $get_int_val("entry_id");
     $nonce = wp_create_nonce('wp_rest');
+    writify_chatgpt_writelog("Created nonce: " . $nonce);
+    ?>
+    <script>
+        var div_index = 0, div_index_str = '';
+        var buffer = ""; // Buffer for holding messages
+        var md = new Remarkable();
 
-    $data_to_pass = array(
-        'form_id' => $form_id,
-        'entry_id' => $entry_id,
-        'nonce' => $nonce
-    );
+        // Fetch the user role using fetch API
+        fetch("<?php echo admin_url('admin-ajax.php'); ?>", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'action=writify_get_user_role'
+        })
+            .then(response => response.json())
+            .then(data => {
+                const userIdentifier = data.role;
 
-    wp_localize_script('writify-event-stream', 'writifyAjaxData', $data_to_pass);
+                // Now initiate the EventSource with the userIdentifier in the query params
+                const formId = <?php echo json_encode($form_id); ?>;
+                const entryId = <?php echo json_encode($entry_id); ?>;
+                const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&user_identifier=${userIdentifier}`;
 
-    // Additional inline scripts here if necessary
+                const source = new EventSource(sourceUrl);
+                source.onmessage = function (event) {
+                    if (event.data == "[ALLDONE]") {
+                        source.close();
+                    } else if (event.data.startsWith("[DIVINDEX-")) {
+                        div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
+                        div_index = parseInt(div_index_str);
+                        console.log(div_index);
+                        jQuery('.response-div-' + (div_index)).css('display', 'flex');
+                        jQuery('.response-div-divider' + (div_index)).show();
+                    } else if (event.data == "[DONE]") {
+                        // When a message is done, convert the buffer to HTML and display it
+                        var html = md.render(buffer);
+                        jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                        var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                        current_div.html(html); // Replace the current HTML content with the processed markdown
+
+                        jQuery.when(current_div.html(html)).then(function () {
+                            // Add the "upgrade_vocab" class to the <li> elements that match the format
+                            addUpgradeVocabClass(current_div);
+                        });
+
+                        // Clear the buffer
+                        buffer = "";
+                    } else {
+                        // Add the message to the buffer
+                        text = JSON.parse(event.data).choices[0].delta.content;
+                        if (text !== undefined) {
+                            buffer += text;
+                            // Convert the buffer to HTML and display it
+                            var html = md.render(buffer);
+                            jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                            var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                            current_div.html(html); // Replace the current HTML content with the processed markdown
+                        }
+                    }
+                };
+                source.onerror = function (event) {
+                    div_index = 0;
+                    source.close();
+                    jQuery('.error_message').css('display', 'flex');
+                };
+            })
+            .catch(error => {
+                console.error("Error fetching user role:", error);
+            });
+    </script>
+    <?php
 }
 
 function writify_enqueue_scripts()
@@ -120,6 +167,17 @@ function writify_enqueue_scripts()
 
             // Localize the script with the data
             wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
+            // Enqueue Remarkable Markdown Parser
+            wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
+
+            // Enqueue Grammarly Editor SDK
+            wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
+
+            // Enqueue the text interaction handler script
+            wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
+
+            // Enqueue the result page styles
+            wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
         }
     }
 }
@@ -251,10 +309,6 @@ function writify_make_request($feed, $entry, $form)
         $max_retries = 20;
         $retry_count = 0;
 
-        // Get the timeout setting from the feed meta, with a fallback default
-        $default_timeout = rgar(rgar($this->default_settings, $endpoint), 'timeout', 180); // Default to 180 seconds if not set
-        $timeout = (int) rgar($feed["meta"], $endpoint . "_timeout", $default_timeout);
-
         do {
             $retry = false;
 
@@ -281,8 +335,6 @@ function writify_make_request($feed, $entry, $form)
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-            // Set the dynamic timeout
-            curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
 
             // Log the Request Details
             $GWiz_GF_OpenAI_Object->log_debug("Request URL: " . $url);
