@@ -131,6 +131,9 @@ function writify_ajax_calls()
     <script src="https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js"></script>
     <script
         src="https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&amp;packageName=%40grammarly%2Feditor-sdk"></script>
+    <sciprt>
+
+    </sciprt>
     <script>
         // Store frequently used selectors
         const $document = jQuery(document);
@@ -376,7 +379,7 @@ function writify_make_request($feed, $entry, $form)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
 
-    $headers = $GWiz_GF_OpenAI_Object->get_headers();
+    //$headers = $GWiz_GF_OpenAI_Object->get_headers();
 
     $endpoint = $feed["meta"]["endpoint"];
 
@@ -492,22 +495,26 @@ function writify_make_request($feed, $entry, $form)
 
         $body["stream"] = true;
 
-        $header = [
-            "Content-Type: " . $headers["Content-Type"],
-            "Authorization: " . $headers["Authorization"],
-            "api-key: " . $headers["api-key"]
-        ];
-
-        if (isset($headers['OpenAI-Organization'])) {
-            $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
-        }
-
         // Add retry mechanism
-        $max_retries = 150;
+        $max_retries = 20;
         $retry_count = 0;
 
         do {
             $retry = false;
+
+            // Regenerate headers before each retry
+            $headers = $GWiz_GF_OpenAI_Object->get_headers();
+
+            // Set the new headers
+            $header = [
+                "Content-Type: " . $headers["Content-Type"],
+                "Authorization: " . $headers["Authorization"],
+                "api-key: " . $headers["api-key"]
+            ];
+
+            if (isset($headers['OpenAI-Organization'])) {
+                $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
+            }
 
             $post_json = json_encode($body);
             $ch = curl_init();
@@ -518,6 +525,11 @@ function writify_make_request($feed, $entry, $form)
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
             curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+
+            // Log the Request Details
+            $GWiz_GF_OpenAI_Object->log_debug("Request URL: " . $url);
+            $GWiz_GF_OpenAI_Object->log_debug("Request Headers: " . json_encode($header));
+            $GWiz_GF_OpenAI_Object->log_debug("Request Body: " . $post_json);
 
             $object = new stdClass();
             $object->res = "";
@@ -558,6 +570,12 @@ function writify_make_request($feed, $entry, $form)
 
             curl_exec($ch);
             $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+            // Check and Log cURL Errors
+            if (curl_errno($ch)) {
+                $error_msg = curl_error($ch);
+                $GWiz_GF_OpenAI_Object->log_debug("cURL Error: " . $error_msg);
+            }
             curl_close($ch);
 
             if (!empty($object->res)) {
@@ -786,8 +804,6 @@ function event_stream_openai(WP_REST_Request $request)
                     //skip
                 }
                 $send_data("[DONE]");
-                // Refresh feeds after processing each feed
-                $feeds = writify_get_feeds($form_id);
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             }
             $feed_index++;
