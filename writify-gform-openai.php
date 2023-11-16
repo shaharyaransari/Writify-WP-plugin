@@ -72,7 +72,7 @@ function writify_enqueue_scripts_footer()
     // Instantiate GWiz_GF_OpenAI object and log the nonce
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
     $GWiz_GF_OpenAI_Object->log_debug("Created nonce in footer: " . $nonce);
-    
+
     ?>
     <script>
         var div_index = 0, div_index_str = '';
@@ -81,7 +81,7 @@ function writify_enqueue_scripts_footer()
 
 
 
-        
+
         const formId = <?php echo json_encode($form_id); ?>;
         const entryId = <?php echo json_encode($entry_id); ?>;
         // Include the nonce in the source URL
@@ -396,9 +396,15 @@ function writify_make_request($feed, $entry, $form)
 
                 // Update the entry in the database
                 $result = GFAPI::update_entry($entry);
+                // Log the result of the entry update.
                 if (is_wp_error($result)) {
-                    error_log('Failed to update entry: ' . $result->get_error_message());
+                    GFCommon::log_debug('Entry update failed' . ' Error: ' . $result->get_error_message());
+                } else {
+                    GFCommon::log_debug('writify_update_post_advancedpostcreation(): Entry updated successfully');
                 }
+                /*if (is_wp_error($result)) {
+                    error_log('Failed to update entry: ' . $result->get_error_message());
+                }*/
 
             } else {
                 if ($http_status !== 200 || !empty($object->error)) {
@@ -451,7 +457,8 @@ function writify_make_request($feed, $entry, $form)
     }
 }
 
-function get_user_primary_identifier() {
+function get_user_primary_identifier()
+{
     $current_user = wp_get_current_user();
 
     // Default role/membership
@@ -607,6 +614,9 @@ function event_stream_openai(WP_REST_Request $request)
                     // Update the processed_feeds metadata after each feed is processed
                     $meta[$_slug] = $processed_feeds;
                     gform_update_meta($entry["id"], "processed_feeds", $meta);
+
+                    // Call writify_update_post_advancedpostcreation function to handle post updates.
+                    writify_update_post_advancedpostcreation($form, $entry['id']);
                 } else {
                     //skip
                 }
@@ -633,6 +643,45 @@ function event_stream_openai(WP_REST_Request $request)
     $send_data("[ALLDONE]");
     die();
 }
+
+function writify_update_post_advancedpostcreation($form, $entry_id)
+{
+
+    GFCommon::log_debug('writify_update_post_advancedpostcreation(): running');
+    // Get the updated entry.
+    $entry = GFAPI::get_entry($entry_id);
+
+    // Get the instance of the APC add-on.
+    $apc_addon = GF_Advanced_Post_Creation::get_instance();
+
+    // Start logging.
+    $apc_addon->log_debug(__METHOD__ . '(): Running update function for entry #' . $entry_id);
+
+    // Retrieve the feeds for the form.
+    $feeds = $apc_addon->get_feeds($form['id']);
+
+    // Iterate over the feeds to find the post creation feed.
+    foreach ($feeds as $feed) {
+        // Check if the feed is for post creation.
+        if ($feed['addon_slug'] === 'gravityformsadvancedpostcreation') {
+            $apc_addon->log_debug(__METHOD__ . '(): Found post creation feed #' . $feed['id']);
+
+            // Retrieve post ID from entry meta.
+            $post_ids_meta = gform_get_meta($entry_id, $apc_addon->get_slug() . '_post_id');
+
+            foreach ($post_ids_meta as $post_info) {
+                if (isset($post_info['post_id']) && $post_info['feed_id'] == $feed['id']) {
+                    // Found the correct feed and post ID, now update the post.
+                    $post_id = $post_info['post_id'];
+                    $apc_addon->log_debug(__METHOD__ . '(): Updating post #' . $post_id);
+                    $apc_addon->update_post($post_id, $feed, $entry, $form);
+                    break 2; // Exit both loops.
+                }
+            }
+        }
+    }
+}
+
 function writify_chatgpt_writelog($log_data)
 {
     if (function_exists('error_log')) {
