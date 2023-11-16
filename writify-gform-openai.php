@@ -577,12 +577,6 @@ function event_stream_openai(WP_REST_Request $request)
                 ? $feed["meta"][$end_point . "_map_result_to_field"]
                 : 0;
 
-            // If this feed is inactive, set a flag and continue to the next feed.
-            if (!$feed["is_active"]) {
-                $feeds_processed = true; // Mark that feeds were processed.
-                continue;
-            }
-
             if (in_array((string) $feed["id"], $processed_feeds)) {
                 $lines = explode("<br />", $entry[$field_id]);
                 foreach ($lines as $line) {
@@ -614,14 +608,12 @@ function event_stream_openai(WP_REST_Request $request)
                     // Update the processed_feeds metadata after each feed is processed
                     $meta[$_slug] = $processed_feeds;
                     gform_update_meta($entry["id"], "processed_feeds", $meta);
-
-                    // Call writify_update_post_advancedpostcreation function to handle post updates.
-                    writify_update_post_advancedpostcreation($form, $entry['id']);
                 } else {
                     //skip
                 }
                 $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
+                $feeds_processed = true; // Set flag to true if a feed is processed
             }
             $feed_index++;
         }
@@ -635,6 +627,12 @@ function event_stream_openai(WP_REST_Request $request)
 
             // Update the entry meta.
             gform_update_meta($entry["id"], "processed_feeds", $meta);
+        }
+
+        // After all feeds are processed
+        if ($feeds_processed) {
+            // Call function to update the post only if new feeds were processed
+            writify_update_post_advancedpostcreation($form, $entry['id']);
         }
 
         $send_data("[ALLDONE]");
