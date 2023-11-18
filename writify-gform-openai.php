@@ -12,13 +12,13 @@ defined("OPAIGFRLT_PATH") or define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__))
 defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
 
 // Check if Gravity Forms is active
-if ( class_exists( 'GFForms' ) ) {
+if (class_exists('GFForms')) {
     // Include the Parsedown library
-    require_once plugin_dir_path( __FILE__ ) . 'includes/Libraries/parsedown-1.7.4/Parsedown.php';
+    require_once plugin_dir_path(__FILE__) . 'includes/Libraries/parsedown-1.7.4/Parsedown.php';
 
     // Include custom merge tag logic
-    require_once plugin_dir_path( __FILE__ ) . 'includes/merge tags/parsedown_merge_tag.php';
-    require_once plugin_dir_path( __FILE__ ) . 'includes/merge tags/band_score_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'includes/merge tags/parsedown_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'includes/merge tags/band_score_merge_tag.php';
 }
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
@@ -586,6 +586,10 @@ function event_stream_openai(WP_REST_Request $request)
                 )
                 ? $feed["meta"][$end_point . "_map_result_to_field"]
                 : 0;
+
+            if (empty($feed["is_active"])) {
+                continue; // Skip this iteration if the feed is not active
+            }
 
             if (in_array((string) $feed["id"], $processed_feeds)) {
                 $lines = explode("<br />", $entry[$field_id]);
