@@ -3,13 +3,29 @@
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
  * Version:           1.0.6
- * Copyright: © 2023-2026 RLT
+ * Author:            IELTS Science
+ * Copyright:         © 2023-2026 RLT
  */
 
 // Define the plugin constants if not defined.
 defined("OPAIGFRLT_URL") or define("OPAIGFRLT_URL", plugin_dir_url(__FILE__));
 defined("OPAIGFRLT_PATH") or define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__));
 defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
+
+require 'plugin-update-checker/plugin-update-checker.php';
+use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
+
+$myUpdateChecker = PucFactory::buildUpdateChecker(
+	'https://github.com/bi1101/Writify-WP-plugin/',
+	__FILE__,
+	'writify-gform-openai'
+);
+
+//Set the branch that contains the stable release.
+$myUpdateChecker->setBranch('main');
+
+//Optional: If you're using a private repository, specify the access token like this:
+$myUpdateChecker->setAuthentication('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');
 
 // Check if Gravity Forms is active
 if (class_exists('GFForms')) {
