@@ -16,8 +16,9 @@ if ( class_exists( 'GFForms' ) ) {
     // Include the Parsedown library
     require_once plugin_dir_path( __FILE__ ) . 'includes/Libraries/parsedown-1.7.4/Parsedown.php';
 
-    // Include your custom merge tag logic
+    // Include custom merge tag logic
     require_once plugin_dir_path( __FILE__ ) . 'includes/merge tags/parsedown_merge_tag.php';
+    require_once plugin_dir_path( __FILE__ ) . 'includes/merge tags/band_score_merge_tag.php';
 }
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
