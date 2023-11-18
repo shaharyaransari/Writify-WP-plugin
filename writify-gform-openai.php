@@ -30,11 +30,11 @@ $myUpdateChecker->setAuthentication('github_pat_11ADX3VSI0m4OgBkis4iqx_eW4akUG2z
 // Check if Gravity Forms is active
 if (class_exists('GFForms')) {
     // Include the Parsedown library
-    require_once plugin_dir_path(__FILE__) . 'includes/Libraries/parsedown-1.7.4/Parsedown.php';
+    require_once plugin_dir_path(__FILE__) . 'Includes/Libraries/parsedown-1.7.4/Parsedown.php';
 
     // Include custom merge tag logic
-    require_once plugin_dir_path(__FILE__) . 'includes/merge tags/parsedown_merge_tag.php';
-    require_once plugin_dir_path(__FILE__) . 'includes/merge tags/band_score_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/parsedown_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/band_score_merge_tag.php';
 }
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
