@@ -11,6 +11,15 @@ defined("OPAIGFRLT_URL") or define("OPAIGFRLT_URL", plugin_dir_url(__FILE__));
 defined("OPAIGFRLT_PATH") or define("OPAIGFRLT_PATH", plugin_dir_path(__FILE__));
 defined("OPAIGFRLT_LOG") or define("OPAIGFRLT_LOG", false);
 
+// Check if Gravity Forms is active
+if ( class_exists( 'GFForms' ) ) {
+    // Include the Parsedown library
+    require_once plugin_dir_path( __FILE__ ) . 'includes/Libraries/parsedown-1.7.4/Parsedown.php';
+
+    // Include your custom merge tag logic
+    require_once plugin_dir_path( __FILE__ ) . 'includes/merge tags/parsedown_merge_tag.php';
+}
+
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
 
 function writify_get_feeds($form_id = null)
