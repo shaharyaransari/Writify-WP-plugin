@@ -35,6 +35,7 @@ if (class_exists('GFForms')) {
     // Include custom merge tag logic
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/parsedown_merge_tag.php';
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/band_score_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/overall_band_score_merge_tag.php';
 }
 
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
