@@ -16,9 +16,9 @@ require 'plugin-update-checker/plugin-update-checker.php';
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 $myUpdateChecker = PucFactory::buildUpdateChecker(
-	'https://github.com/bi1101/Writify-WP-plugin/',
-	__FILE__,
-	'writify-gform-openai'
+    'https://github.com/bi1101/Writify-WP-plugin/',
+    __FILE__,
+    'writify-gform-openai'
 );
 
 //Set the branch that contains the stable release.

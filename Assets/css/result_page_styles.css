@@ -48,8 +48,8 @@ span.improved-vocab:hover {
 }
 
 mark {
-    background-color: #ffa600!important;
-    transition: opacity 0.2s!important;
-    padding: 4px!important;
-    border-radius: 8px!important;
+    background-color: #ffa600 !important;
+    transition: opacity 0.2s !important;
+    padding: 4px !important;
+    border-radius: 8px !important;
 }

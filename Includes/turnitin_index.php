@@ -167,14 +167,16 @@ function filter_posts_by_turnitin_index($query)
                 return; // If the operator is not recognized, exit the function
         }
 
-        $query->set('meta_query', array(
+        $query->set(
+            'meta_query',
             array(
-                'key' => 'turnitin_index',
-                'value' => $value,
-                'compare' => $compare,
-                'type' => 'NUMERIC'
+                array(
+                    'key' => 'turnitin_index',
+                    'value' => $value,
+                    'compare' => $compare,
+                    'type' => 'NUMERIC'
+                )
             )
-        )
         );
     }
 }
