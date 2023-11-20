@@ -13,7 +13,7 @@ function check_post_plagiarism($post_id)
     error_log('Retrieved post content for plagiarism check: ' . $full_content);
 
     // Extract content from the beginning to the "<h3>Vocabulary Improvements</h3>" tag
-    $target_tag = '<h3>Vocabulary Improvements</h3>';
+    $target_tag = '<hr />';
     $tag_position = strpos($full_content, $target_tag);
     $content_to_check = $tag_position !== false ? substr($full_content, 0, $tag_position) : $full_content;
 
