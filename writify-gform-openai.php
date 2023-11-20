@@ -38,6 +38,9 @@ if (class_exists('GFForms')) {
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/overall_band_score_merge_tag.php';
 }
 
+// Add turnitin index
+require_once plugin_dir_path(__FILE__) . 'Includes/turnitin_index.php';
+
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
 
 function writify_get_feeds($form_id = null)
