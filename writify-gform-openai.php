@@ -180,13 +180,19 @@ function writify_enqueue_scripts()
 
             // Get current user's data
             $current_user = wp_get_current_user();
+            $primary_identifier = get_user_primary_identifier();
 
-            // Prepare data to pass to the script
+            // Modify the user's name if they are a subscriber or have no membership
+            $firstName = $current_user->user_firstname;
+            $lastName = $current_user->user_lastname;
+            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber') {
+                $lastName .= " IELTS Science"; // Add "IELTS Science" to the last name
+            }
+
             $data_to_pass = array(
-                'firstName' => $current_user->user_firstname,
-                'lastName' => $current_user->user_lastname
+                'firstName' => $firstName,
+                'lastName' => $lastName
             );
-
             // Localize the script with the data
             wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
             // Enqueue Remarkable Markdown Parser
