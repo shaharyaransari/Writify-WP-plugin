@@ -109,9 +109,6 @@ function writify_enqueue_scripts_footer()
         var buffer = ""; // Buffer for holding messages
         var md = new Remarkable();
 
-
-
-
         const formId = <?php echo json_encode($form_id); ?>;
         const entryId = <?php echo json_encode($entry_id); ?>;
         // Include the nonce in the source URL
@@ -142,7 +139,15 @@ function writify_enqueue_scripts_footer()
 
                 // Clear the buffer
                 buffer = "";
-            } else {
+            }
+            else if (event.data.startsWith('{"response":')) {
+                var jsonResponse = JSON.parse(event.data);
+                var whisperResponse = jsonResponse.response; // Extract the response text
+
+                // Insert the response into the Quill editor
+                quill.clipboard.dangerouslyPasteHTML(whisperResponse);
+            }
+            else {
                 // Add the message to the buffer
                 text = JSON.parse(event.data).choices[0].delta.content;
                 if (text !== undefined) {
