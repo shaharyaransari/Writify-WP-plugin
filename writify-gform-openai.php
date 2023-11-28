@@ -186,7 +186,7 @@ function writify_enqueue_scripts()
             $firstName = $current_user->user_firstname;
             $lastName = $current_user->user_lastname;
             if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber') {
-                $lastName .= " IELTS Science"; // Add "IELTS Science" to the last name
+                $lastName .= " from IELTS Science"; // Add "IELTS Science" to the last name
             }
 
             $data_to_pass = array(
@@ -448,30 +448,30 @@ function writify_make_request($feed, $entry, $form)
                     if ($retry_count <= $max_retries) {
                         $retry = true;
                         sleep(2); // Optional: add sleep time before retrying
-                        GFAPI::add_note(
-                            $entry["id"],
-                            0,
-                            "OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->error
-                        );
                         $GWiz_GF_OpenAI_Object->add_feed_error(
                             $object->error,
                             $feed,
                             $entry,
                             $form
+                        );
+                        GFAPI::add_note(
+                            $entry["id"],
+                            0,
+                            "Retrying after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->error
                         );
                     } else {
-                        GFAPI::add_note(
-                            $entry["id"],
-                            0,
-                            "OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->error
-                        );
                         $GWiz_GF_OpenAI_Object->add_feed_error(
                             $object->error,
                             $feed,
                             $entry,
                             $form
+                        );
+                        GFAPI::add_note(
+                            $entry["id"],
+                            0,
+                            "Stopped retry after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                            $object->error
                         );
                         return $object;
                     }
@@ -484,6 +484,65 @@ function writify_make_request($feed, $entry, $form)
             "openai_response_" . $feed["id"],
             $object->res
         );
+
+        return $entry;
+    }
+    // Add handling for the Whisper API endpoint
+    if ($endpoint === "whisper") {
+        // Get the file field ID and model from the feed settings
+        $model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
+        $file_field_id = rgar($feed['meta'], 'whisper_file_field');
+
+        // Get the file URL from the entry and convert it to a path
+        $file_url = rgar($entry, $file_field_id);
+        $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
+
+        // Check if the file is accessible
+        if (!is_readable($file_path)) {
+            // Handle the error - the file is not accessible
+            $GWiz_GF_OpenAI_Object->add_feed_error("File is not accessible or does not exist: " . $file_path, $feed, $entry, $form);
+            return $entry;
+        }
+
+        // Prepare the request body for the Whisper API
+        $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
+        $body = array(
+            'file' => $curl_file,
+            'model' => $model
+        );
+
+        // Send the request to the Whisper API
+        $response = $GWiz_GF_OpenAI_Object->make_request('audio/transcriptions', $body, $feed);
+
+        // Log the raw response
+        $GWiz_GF_OpenAI_Object->log_debug("Raw Whisper API response: " . print_r($response, true));
+
+        // Handle the response
+        if (is_wp_error($response)) {
+            // If there was an error, log it and return.
+            $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+            return $entry;
+        }
+
+        if (rgar($response, 'error')) {
+            $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
+            return $entry;
+        }
+
+        $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+
+        if (!is_wp_error($text)) {
+            GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
+            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $text);
+        } else {
+            $GWiz_GF_OpenAI_Object->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+        }
+
+        gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $response['body']);
+
+        // Stream the response using SSE
+        echo "data: " . json_encode(['response' => $text]) . "\n\n";
+        flush(); // Flush data to the browser
 
         return $entry;
     } else {
@@ -524,6 +583,13 @@ function event_stream_openai(WP_REST_Request $request)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
 
+    // New function to output SSE data.
+    $send_data = function ($data) {
+        echo "data: " . $data . PHP_EOL;
+        echo PHP_EOL;
+        flush();
+    };
+
     // Log the received nonce value
     $nonce = $request->get_param('_wpnonce');
     $GWiz_GF_OpenAI_Object->log_debug("Received nonce: " . $nonce);
@@ -535,10 +601,6 @@ function event_stream_openai(WP_REST_Request $request)
     }
 
     $GWiz_GF_OpenAI_Object->log_debug("Nonce verified successfully");
-
-    // Get the current user's role
-    $current_user = wp_get_current_user();
-    $user_role = $current_user->roles[0] ?? 'default';
 
 
     if (!headers_sent()) {
@@ -561,13 +623,6 @@ function event_stream_openai(WP_REST_Request $request)
             echo PHP_EOL;
             flush();
         }
-
-        // New function to output SSE data.
-        $send_data = function ($data) {
-            echo "data: " . $data . PHP_EOL;
-            echo PHP_EOL;
-            flush();
-        };
 
         $send_data("[DIVINDEX-0]");
 
@@ -634,8 +689,6 @@ function event_stream_openai(WP_REST_Request $request)
                 $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
             } else {
-                //writify_chatgpt_writelog("Processing " . $feed_name . " is active!");
-
                 // All requirements are met; process feed.
                 $returned_entry = writify_make_request($feed, $entry, $form);
 
@@ -659,15 +712,6 @@ function event_stream_openai(WP_REST_Request $request)
         }
 
         gform_update_meta($entry["id"], "{$_slug}_is_fulfilled", true);
-
-        // If any feeds were processed, save the processed feed IDs.
-        if (!empty($processed_feeds)) {
-            // Add this Add-On's processed feeds to the entry meta.
-            $meta[$_slug] = $processed_feeds;
-
-            // Update the entry meta.
-            gform_update_meta($entry["id"], "processed_feeds", $meta);
-        }
 
         // After all feeds are processed
         if ($feeds_processed) {
