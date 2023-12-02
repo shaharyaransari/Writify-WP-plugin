@@ -502,6 +502,9 @@ function writify_make_request($feed, $entry, $form)
         $file_url = rgar($entry, $file_field_id);
         $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
 
+        $prompt = rgar($feed['meta'], 'whisper_prompt',"A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. For example, when asked to 'Describe a famous destination,' the student might say: 'Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...'");
+        $language = rgar($feed['meta'], 'whisper_language', 'en');
+
         // Check if the file is accessible
         if (!is_readable($file_path)) {
             // Handle the error - the file is not accessible
@@ -513,7 +516,9 @@ function writify_make_request($feed, $entry, $form)
         $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
         $body = array(
             'file' => $curl_file,
-            'model' => $model
+            'model' => $model,
+            'prompt' => $prompt,
+            'language' => $language
         );
 
         // Send the request to the Whisper API
@@ -678,18 +683,25 @@ function event_stream_openai(WP_REST_Request $request)
             }
 
             if (in_array((string) $feed["id"], $processed_feeds)) {
-                $lines = explode("<br />", $entry[$field_id]);
-                foreach ($lines as $line) {
-                    $object = new stdClass();
-                    if (empty(trim($line))) {
-                        $line = "\r\n";
-                    } else {
-                        $line = trim($line) . "\r\n";
+                if ($end_point === "whisper") {
+                    // Handle Whisper API response
+                    // Assuming $entry[$field_id] contains the Whisper response
+                    $whisperResponse = $entry[$field_id];
+                    $send_data(json_encode(['response' => $whisperResponse]));
+                } else {
+                    $lines = explode("<br />", $entry[$field_id]);
+                    foreach ($lines as $line) {
+                        $object = new stdClass();
+                        if (empty(trim($line))) {
+                            $line = "\r\n";
+                        } else {
+                            $line = trim($line) . "\r\n";
+                        }
+                        $object->content = $line;
+                        $send_data(
+                            json_encode(["choices" => [["delta" => $object]]])
+                        );
                     }
-                    $object->content = $line;
-                    $send_data(
-                        json_encode(["choices" => [["delta" => $object]]])
-                    );
                 }
                 $send_data("[DONE]");
                 $send_data("[DIVINDEX-" . $feed_index . "]");
