@@ -16,7 +16,7 @@
     border-radius: 8px;
     padding: 20px;
     margin: 20px 0px 20px -15px;
-    box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.2);
+    border: #D6D9DD solid 1px;
 }
 
 span.original-vocab {
