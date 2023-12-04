@@ -144,8 +144,12 @@ function writify_enqueue_scripts_footer()
                 var jsonResponse = JSON.parse(event.data);
                 var whisperResponse = jsonResponse.response; // Extract the response text
 
-                // Insert the response into the Quill editor
-                quill.clipboard.dangerouslyPasteHTML(whisperResponse);
+                // Convert Whisper response to HTML using Markdown
+                var html = md.render(whisperResponse);
+
+                // Update the content of the 'my-text' div
+                var myTextDiv = document.getElementById('my-text');
+                myTextDiv.innerHTML += html;
             }
             else {
                 // Add the message to the buffer
@@ -494,65 +498,102 @@ function writify_make_request($feed, $entry, $form)
     }
     // Add handling for the Whisper API endpoint
     if ($endpoint === "whisper") {
-        // Get the file field ID and model from the feed settings
+        // Get file field ID, model, prompt, and language from the feed settings
         $model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
         $file_field_id = rgar($feed['meta'], 'whisper_file_field');
-
-        // Get the file URL from the entry and convert it to a path
-        $file_url = rgar($entry, $file_field_id);
-        $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
-
         $prompt = rgar($feed['meta'], 'whisper_prompt',"A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. For example, when asked to 'Describe a famous destination,' the student might say: 'Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...'");
         $language = rgar($feed['meta'], 'whisper_language', 'en');
 
-        // Check if the file is accessible
-        if (!is_readable($file_path)) {
-            // Handle the error - the file is not accessible
-            $GWiz_GF_OpenAI_Object->add_feed_error("File is not accessible or does not exist: " . $file_path, $feed, $entry, $form);
-            return $entry;
+        // Logging the feed settings
+        $GWiz_GF_OpenAI_Object->log_debug("Whisper feed settings: Model: {$model}, File Field ID: {$file_field_id}, Prompt: {$prompt}, Language: {$language}");
+
+        // Get the file URLs from the entry (assuming it returns an array of URLs)
+        $file_urls = rgar($entry, $file_field_id);
+        $GWiz_GF_OpenAI_Object->log_debug("File URLs: " . print_r($file_urls, true));
+
+        $combined_text = ""; // Initialize a string to store all transcriptions
+
+        // Decode JSON string to array if necessary
+        if (is_string($file_urls)) {
+            $file_urls = json_decode($file_urls, true);
+            $GWiz_GF_OpenAI_Object->log_debug("Decoded file URLs: " . print_r($file_urls, true));
         }
 
-        // Prepare the request body for the Whisper API
-        $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
-        $body = array(
-            'file' => $curl_file,
-            'model' => $model,
-            'prompt' => $prompt,
-            'language' => $language
-        );
+        // Proceed only if $file_urls is an array
+        if (is_array($file_urls)) {
+            foreach ($file_urls as $file_url) {
+                $GWiz_GF_OpenAI_Object->log_debug("Processing file URL: {$file_url}");
+                $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
+                $GWiz_GF_OpenAI_Object->log_debug("Converted file path: {$file_path}");
 
-        // Send the request to the Whisper API
-        $response = $GWiz_GF_OpenAI_Object->make_request('audio/transcriptions', $body, $feed);
+                if (is_readable($file_path)) {
+                    $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
+                    $body = array(
+                        'file' => $curl_file,
+                        'model' => $model,
+                        'prompt' => $prompt,
+                        'language' => $language
+                    );
+                    $GWiz_GF_OpenAI_Object->log_debug("Request body for Whisper API: " . print_r($body, true));
 
-        // Log the raw response
-        $GWiz_GF_OpenAI_Object->log_debug("Raw Whisper API response: " . print_r($response, true));
+                    GFAPI::add_note(
+                        $entry["id"],
+                        0,
+                        "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
+                        sprintf(
+                            __(
+                                "Sent request to OpenAI audio/tráncription endpoint.",
+                                "gravityforms-openai"
+                            )
+                        )
+                    );
 
-        // Handle the response
-        if (is_wp_error($response)) {
-            // If there was an error, log it and return.
-            $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
-            return $entry;
-        }
+                    $response = $GWiz_GF_OpenAI_Object->make_request('audio/transcriptions', $body, $feed);
+                    $GWiz_GF_OpenAI_Object->log_debug("Response from Whisper API: " . print_r($response, true));
 
-        if (rgar($response, 'error')) {
-            $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
-            return $entry;
-        }
 
-        $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+                    if (is_wp_error($response)) {
+                        $GWiz_GF_OpenAI_Object->log_debug("Error from Whisper API: " . $response->get_error_message());
+                        $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+                    } else if (rgar($response, 'error')) {
+                        $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
+                        $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
+                    } else {
+                        $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+                        $GWiz_GF_OpenAI_Object->log_debug("Transcription text: {$text}");
+                        if (!is_wp_error($text)) {
+                            GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
+                            // Append each transcription to the combined string
+                            $combined_text .= $text . "\n\n";
 
-        if (!is_wp_error($text)) {
-            GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
-            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $text);
+                            // Stream each response using SSE
+                            echo "data: " . json_encode(['response' => $text]) . "\n\n";
+                            flush(); // Flush data to the browser after each file is transcribed
+                        } else {
+                            $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
+                            $GWiz_GF_OpenAI_Object->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+                        }
+                    }
+                } else {
+                    $GWiz_GF_OpenAI_Object->log_debug("File not accessible: {$file_path}");
+                    $GWiz_GF_OpenAI_Object->add_feed_error("File is not accessible or does not exist: " . $file_path, $feed, $entry, $form);
+                }
+            }
         } else {
-            $GWiz_GF_OpenAI_Object->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+            $GWiz_GF_OpenAI_Object->log_debug("file_urls is not an array.");
         }
 
-        gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $response['body']);
+        // Logging the combined text
+        $GWiz_GF_OpenAI_Object->log_debug("Combined transcription text: {$combined_text}");
 
-        // Stream the response using SSE
-        echo "data: " . json_encode(['response' => $text]) . "\n\n";
-        flush(); // Flush data to the browser
+        // Update the entry with the combined transcriptions
+        if (!empty($combined_text)) {
+            GFAPI::add_note($entry['id'], 0, 'Whisper API Combined Response', $combined_text);
+            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
+
+            // Optionally, store the combined text as a meta for the entry
+            gform_add_meta($entry['id'], 'whisper_combined_response', $combined_text);
+        }
 
         return $entry;
     } else {
