@@ -86,8 +86,8 @@ function writify_enqueue_scripts_footer()
     global $post;
     $slug = $post->post_name;
 
-    // Check if the page slug begins with "result"
-    if (strpos($slug, 'result') !== 0) {
+    // Check if the page slug begins with "result" or "speaking-result"
+    if (strpos($slug, 'result') !== 0 && strpos($slug, 'speaking-result') !== 0) {
         return;
     }
 
@@ -217,7 +217,7 @@ function writify_enqueue_scripts()
             wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
         }
         // Enqueue the script only if the slug starts with 'speaking-result'
-        if (substr($slug, 0, 6) === 'speaking-result') {
+        if (substr($slug, 0, 15) === 'speaking-result') {
             wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.0', true);
 
             // Get current user's data
