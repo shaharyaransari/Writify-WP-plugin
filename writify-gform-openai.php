@@ -194,7 +194,40 @@ function writify_enqueue_scripts()
             // Modify the user's name if they are a subscriber or have no membership
             $firstName = $current_user->user_firstname;
             $lastName = $current_user->user_lastname;
-            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber') {
+            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus') {
+                $lastName .= " from IELTS Science"; // Add "from IELTS Science" to the last name
+            }
+
+            $data_to_pass = array(
+                'firstName' => $firstName,
+                'lastName' => $lastName
+            );
+            // Localize the script with the data
+            wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
+            // Enqueue Remarkable Markdown Parser
+            wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
+
+            // Enqueue Grammarly Editor SDK
+            wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
+
+            // Enqueue the text interaction handler script
+            wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
+
+            // Enqueue the result page styles
+            wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
+        }
+        // Enqueue the script only if the slug starts with 'speaking-result'
+        if (substr($slug, 0, 6) === 'speaking-result') {
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.0', true);
+
+            // Get current user's data
+            $current_user = wp_get_current_user();
+            $primary_identifier = get_user_primary_identifier();
+
+            // Modify the user's name if they are a subscriber or have no membership
+            $firstName = $current_user->user_firstname;
+            $lastName = $current_user->user_lastname;
+            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus') {
                 $lastName .= " from IELTS Science"; // Add "IELTS Science" to the last name
             }
 
@@ -501,7 +534,7 @@ function writify_make_request($feed, $entry, $form)
         // Get file field ID, model, prompt, and language from the feed settings
         $model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
         $file_field_id = rgar($feed['meta'], 'whisper_file_field');
-        $prompt = rgar($feed['meta'], 'whisper_prompt',"A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. For example, when asked to 'Describe a famous destination,' the student might say: 'Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...'");
+        $prompt = rgar($feed['meta'], 'whisper_prompt', "A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. Describe a famous destination. Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...");
         $language = rgar($feed['meta'], 'whisper_language', 'en');
 
         // Logging the feed settings
