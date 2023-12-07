@@ -186,6 +186,10 @@ function writify_enqueue_scripts()
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
             wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.0', true);
+            // Enqueue Docx script
+            wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
+            // Enqueue FileSaver script
+            wp_enqueue_script('file-saver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js', array(), null, true);
 
             // Get current user's data
             $current_user = wp_get_current_user();
@@ -219,6 +223,10 @@ function writify_enqueue_scripts()
         // Enqueue the script only if the slug starts with 'speaking-result'
         if (substr($slug, 0, 15) === 'speaking-result') {
             wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.0', true);
+            // Enqueue Docx script
+            wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
+            // Enqueue FileSaver script
+            wp_enqueue_script('file-saver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js', array(), null, true);
 
             // Get current user's data
             $current_user = wp_get_current_user();
