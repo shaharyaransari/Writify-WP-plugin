@@ -1,7 +1,7 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.0
- * Last Updated: 13-11-2023
+ * Version: 1.0.1
+ * Last Updated: 07-12-2023
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
  */
@@ -306,27 +306,37 @@ async function exportDocument() {
     const commentsForDocx = convertRawCommentsToDocxFormat(rawComments);
 
     // Extract headers from the document
-    let tH = document.getElementsByClassName("tr_header")[0].innerText;
-    let ccH = document.getElementsByClassName("cc_header")[0].innerText;
-    let lrH = document.getElementsByClassName("lr_header")[0].innerText;
-    let grH = document.getElementsByClassName("gra_header")[0].innerText;
-    let shH = document.getElementsByClassName("sample_header")[0].innerText;
+    let tH = document.getElementsByClassName("tr_header")[0]?.innerText;
+    let ccH = document.getElementsByClassName("cc_header")[0]?.innerText;
+    let lrH = document.getElementsByClassName("lr_header")[0]?.innerText;
+    let grH = document.getElementsByClassName("gra_header")[0]?.innerText;
+    let shH = document.getElementsByClassName("sample_header")[0]?.innerText;
 
     // Generating sections
     const sectionsChildren = [];
     sectionsChildren.push(...createSectionsWithComments(rawComments));
 
-    // Add headers and their respective sections
-    sectionsChildren.push(createHeaderParagraph(tH));
-    sectionsChildren.push(...createNormalSections("tr_response"));
-    sectionsChildren.push(createHeaderParagraph(ccH));
-    sectionsChildren.push(...createNormalSections("cc_response"));
-    sectionsChildren.push(createHeaderParagraph(lrH));
-    sectionsChildren.push(...createNormalSections("lr_response"));
-    sectionsChildren.push(createHeaderParagraph(grH));
-    sectionsChildren.push(...createNormalSections("gra_response"));
-    sectionsChildren.push(createHeaderParagraph(shH));
-    sectionsChildren.push(...createNormalSections("sample_response"));
+    // Add headers and their respective sections if they exist
+    if (tH) {
+        sectionsChildren.push(createHeaderParagraph(tH));
+        sectionsChildren.push(...createNormalSections("tr_response"));
+    }
+    if (ccH) {
+        sectionsChildren.push(createHeaderParagraph(ccH));
+        sectionsChildren.push(...createNormalSections("cc_response"));
+    }
+    if (lrH) {
+        sectionsChildren.push(createHeaderParagraph(lrH));
+        sectionsChildren.push(...createNormalSections("lr_response"));
+    }
+    if (grH) {
+        sectionsChildren.push(createHeaderParagraph(grH));
+        sectionsChildren.push(...createNormalSections("gra_response"));
+    }
+    if (shH) {
+        sectionsChildren.push(createHeaderParagraph(shH));
+        sectionsChildren.push(...createNormalSections("sample_response"));
+    }
 
     const doc = new docx.Document({
         title: "Result", // Adjust as needed
