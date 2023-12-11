@@ -144,7 +144,7 @@ function process_field_for_scores( $field_value ) {
             $bandScore = get_band_score_for_text($extractedText, $bandDescriptors);
             // Append "Characteristic of Band" only if bandScore is not empty
             if (!empty($bandScore)) {
-                $processedText .= $line . ' - Characteristic of Band ' . $bandScore . "\n";
+                $processedText .= $line . ' - Characteristic of Band **' . $bandScore . "**\n";
             } else {
                 $processedText .= $line . "\n";
             }
