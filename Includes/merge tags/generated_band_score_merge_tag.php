@@ -182,8 +182,9 @@ function get_band_descriptors($type)
     ];
 }
 
-function get_lowest_band_score($parsedData, $bandDescriptors)
+function get_lowest_band_score($parsedData, $type)
 {
+    $bandDescriptors = get_band_descriptors($type);
     $lowestBand = max(array_keys($bandDescriptors)); // Start with the highest band
 
     foreach ($parsedData as $value) {
@@ -201,37 +202,46 @@ function get_lowest_band_score($parsedData, $bandDescriptors)
 add_filter('gform_custom_merge_tags', 'add_bullet_points_with_scores_merge_tag', 10, 4);
 function add_bullet_points_with_scores_merge_tag($merge_tags, $form_id, $fields, $element_id)
 {
-    // Add new merge tag for bullet points with scores
-    $merge_tags[] = array('label' => 'Bullet Points with Scores', 'tag' => '{bullet_points_with_scores_[field_id]}');
+    $criteria = ['TR', 'CC', 'LR', 'GRA'];
+
+    foreach ($criteria as $criterion) {
+        $merge_tags[] = array(
+            'label' => "Bullet Points with Scores for $criterion",
+            'tag' => "{bullet_points_with_scores_{$criterion}_[field_id]}"
+        );
+    }
 
     return $merge_tags;
 }
 
-
 add_filter('gform_replace_merge_tags', 'replace_bullet_points_with_scores_merge_tag', 10, 7);
 function replace_bullet_points_with_scores_merge_tag($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 {
-    $custom_tag = '/{bullet_points_with_scores_(\d+)}/';
-    preg_match_all($custom_tag, $text, $matches, PREG_SET_ORDER);
+    $criteria = ['TR', 'CC', 'LR', 'GRA'];
 
-    foreach ($matches as $match) {
-        $field_id = $match[1];
-        $field_value = rgar($entry, $field_id);
+    foreach ($criteria as $criterion) {
+        $custom_tag = "/{bullet_points_with_scores_{$criterion}_(\d+)}/";
+        preg_match_all($custom_tag, $text, $matches, PREG_SET_ORDER);
 
-        // Process the field value to append scores to bullet points
-        $processed_value = process_field_for_scores($field_value);
+        foreach ($matches as $match) {
+            $field_id = $match[1];
+            $field_value = rgar($entry, $field_id);
 
-        $text = str_replace($match[0], $processed_value, $text);
+            // Process the field value to append scores to bullet points
+            $processed_value = process_field_for_scores($field_value, $criterion);
+
+            $text = str_replace($match[0], $processed_value, $text);
+        }
     }
 
     return $text;
 }
 
-function process_field_for_scores($field_value)
+
+function process_field_for_scores($field_value, $type)
 {
     $normalized_value = str_replace(array("\r\n", "\r"), "\n", $field_value);
     $lines = explode("\n", $normalized_value);
-    $bandDescriptors = get_band_descriptors();
     $processedText = '';
 
     foreach ($lines as $line) {
@@ -240,8 +250,7 @@ function process_field_for_scores($field_value)
 
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
             $extractedText = substr($line, $startPos + 1, $endPos - $startPos - 1);
-            $bandScore = get_band_score_for_text($extractedText, $bandDescriptors);
-            // Append "Characteristic of Band" only if bandScore is not empty
+            $bandScore = get_band_score_for_text($extractedText, $type);
             if (!empty($bandScore)) {
                 $processedText .= $line . ' - Characteristic of Band **' . $bandScore . "**\n";
             } else {
@@ -253,8 +262,10 @@ function process_field_for_scores($field_value)
     return $processedText;
 }
 
-function get_band_score_for_text($text, $bandDescriptors)
+function get_band_score_for_text($text, $type)
 {
+    $bandDescriptors = get_band_descriptors($type);
+
     foreach ($bandDescriptors as $band => $descriptors) {
         if (in_array($text, $descriptors)) {
             return $band;
