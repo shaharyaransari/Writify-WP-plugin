@@ -16,22 +16,31 @@ function add_generated_band_score_merge_tags($merge_tags, $form_id, $fields, $el
 add_filter('gform_replace_merge_tags', 'replace_generated_band_score_merge_tags', 10, 7);
 function replace_generated_band_score_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 {
+    //error_log("Starting to replace generated band score merge tags");
     $criteria = ['TR', 'CC', 'LR', 'GRA'];
 
     foreach ($criteria as $criterion) {
+        //error_log("Processing criterion: $criterion");
         $custom_tag = "/{generated_{$criterion}_band_score_(\d+)}/";
         preg_match_all($custom_tag, $text, $matches, PREG_SET_ORDER);
 
         foreach ($matches as $match) {
             $field_id = $match[1];
             $field_value = rgar($entry, $field_id);
+            //error_log("Field ID: $field_id, Field Value: $field_value");
+
             $parsedData = parse_field_value($field_value);
-            $bandDescriptors = get_band_descriptors($criterion);
-            $band_score = get_lowest_band_score($parsedData, $bandDescriptors);
+            error_log("Parsed Data for Field ID $field_id: " . print_r($parsedData, true));
+
+            //$bandDescriptors = get_band_descriptors($criterion);
+            $band_score = get_lowest_band_score($parsedData, $criterion);
+            //error_log("Calculated Band Score for Field ID $field_id: $band_score");
+
             $text = str_replace($match[0], $band_score, $text);
         }
     }
 
+    //error_log("Final text after replacements: $text");
     return $text;
 }
 
@@ -56,7 +65,7 @@ function parse_field_value($field_value)
         }
     }
 
-    error_log('Bullets extracted: ' . print_r($parsedData, true));
+    //error_log('Bullets extracted: ' . print_r($parsedData, true));
     return $parsedData;
 }
 
@@ -90,7 +99,7 @@ function get_band_descriptors($type)
                 'Minimal or tangential response, possibly due to misunderstanding, format may be inappropriate.',
                 'Position discernible but not evident.',
                 'Main ideas difficult to identify, lacking relevance or support.',
-                'Off topic or tangentially related.'
+                'NOT relevant to the Essay prompt.'
             ]
 
         ],
@@ -180,12 +189,24 @@ function get_band_descriptors($type)
         ],
 
     ];
+    return $descriptors[$type] ?? [];
 }
 
 function get_lowest_band_score($parsedData, $type)
 {
     $bandDescriptors = get_band_descriptors($type);
-    $lowestBand = max(array_keys($bandDescriptors)); // Start with the highest band
+
+    // Log the band descriptors
+    //error_log("Band Descriptors for type $type: " . print_r($bandDescriptors, true));
+
+    // Check if band descriptors are empty
+    if (empty($bandDescriptors)) {
+        //error_log("No band descriptors found for type $type");
+        return '';
+    }
+
+    $lowestBand = max(array_keys($bandDescriptors));
+    //error_log("Starting with highest band: $lowestBand");
 
     foreach ($parsedData as $value) {
         foreach ($bandDescriptors as $band => $descriptors) {
