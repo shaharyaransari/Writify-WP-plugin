@@ -264,7 +264,7 @@ function writify_enqueue_scripts()
 add_action('wp_enqueue_scripts', 'writify_enqueue_scripts');
 
 
-function writify_make_request($feed, $entry, $form)
+function writify_make_request($feed, $entry, $form, $stream_to_frontend)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
 
@@ -287,7 +287,7 @@ function writify_make_request($feed, $entry, $form)
         $model_option_name = 'chat_completion_model_' . $primary_identifier;
 
         // Get the model from feed metadata based on user's role or membership
-        $model = rgar($feed["meta"], $model_option_name);
+        $model = rgar($feed["meta"], $model_option_name, 'gpt-3.5-turbo');
         $message = $feed["meta"]["chat_completions_message"];
 
         // Parse the merge tags in the message.
@@ -425,7 +425,7 @@ function writify_make_request($feed, $entry, $form)
             $object->res = "";
             $object->error = "";
 
-            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object) {
+            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend) {
                 $pop_arr = explode("data: ", $data);
 
                 foreach ($pop_arr as $pop_item) {
@@ -450,7 +450,9 @@ function writify_make_request($feed, $entry, $form)
                         }
                     }
 
-                    echo "data: " . $pop_item . PHP_EOL;
+                    if ($stream_to_frontend === 'yes') {
+                        echo "data: " . $pop_item . PHP_EOL;
+                    }
                 }
 
                 //writify_chatgpt_writelog(trim($data)); // Log the raw JSON
@@ -748,6 +750,7 @@ function event_stream_openai(WP_REST_Request $request)
         // Loop through feeds.
         $feed_index = 1;
         foreach ($feeds as $feed) {
+            $stream_to_frontend = rgar($feed['meta'], 'stream_to_frontend', 'yes');
             // Get the feed name.
             $feed_name = rgempty("feed_name", $feed["meta"])
                 ? rgar($feed["meta"], "feedName")
@@ -772,7 +775,8 @@ function event_stream_openai(WP_REST_Request $request)
                     // Assuming $entry[$field_id] contains the Whisper response
                     $whisperResponse = $entry[$field_id];
                     $send_data(json_encode(['response' => $whisperResponse]));
-                } else {
+                }
+                if ($stream_to_frontend === 'yes') {
                     $lines = explode("<br />", $entry[$field_id]);
                     foreach ($lines as $line) {
                         $object = new stdClass();
@@ -787,11 +791,13 @@ function event_stream_openai(WP_REST_Request $request)
                         );
                     }
                 }
-                $send_data("[DONE]");
-                $send_data("[DIVINDEX-" . $feed_index . "]");
+                if ($stream_to_frontend === 'yes') {
+                    $send_data("[DONE]");
+                    $send_data("[DIVINDEX-" . $feed_index . "]");
+                }
             } else {
                 // All requirements are met; process feed.
-                $returned_entry = writify_make_request($feed, $entry, $form);
+                $returned_entry = writify_make_request($feed, $entry, $form, $stream_to_frontend);
 
                 // If returned value from the processed feed call is an array containing an id, set the entry to its value.
                 if (is_array($returned_entry)) {
@@ -805,11 +811,15 @@ function event_stream_openai(WP_REST_Request $request)
                 } else {
                     //skip
                 }
-                $send_data("[DONE]");
-                $send_data("[DIVINDEX-" . $feed_index . "]");
+                if ($stream_to_frontend === 'yes') {
+                    $send_data("[DONE]");
+                    $send_data("[DIVINDEX-" . $feed_index . "]");
+                }
                 $feeds_processed = true; // Set flag to true if a feed is processed
             }
-            $feed_index++;
+            if ($stream_to_frontend === 'yes') {
+                $feed_index++;
+            }
         }
 
         gform_update_meta($entry["id"], "{$_slug}_is_fulfilled", true);
