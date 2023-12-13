@@ -273,7 +273,21 @@ function writify_make_request($feed, $entry, $form)
     $endpoint = $feed["meta"]["endpoint"];
 
     if ($endpoint === "chat/completions") {
-        $model = $feed["meta"]["chat_completions_model"];
+        // Identify the user role or membership title from the API request
+        $primary_identifier = get_user_primary_identifier();
+        // Log primary role or membership title for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
+
+        // Get the saved API base for the user role or membership from the feed settings
+        $option_name = 'api_base_' . $primary_identifier;
+        $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+
+        // Log API base for debugging
+        $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
+        $model_option_name = 'chat_completion_model_' . $primary_identifier;
+
+        // Get the model from feed metadata based on user's role or membership
+        $model = rgar($feed["meta"], $model_option_name);
         $message = $feed["meta"]["chat_completions_message"];
 
         // Parse the merge tags in the message.
@@ -323,19 +337,6 @@ function writify_make_request($feed, $entry, $form)
             ],
             "model" => $model,
         ];
-
-        // Identify the user role or membership title from the API request
-        $primary_identifier = get_user_primary_identifier();
-
-        // Log primary role or membership title for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
-
-        // Get the saved API base for the user role or membership from the feed settings
-        $option_name = 'api_base_' . $primary_identifier;
-        $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
-
-        // Log API base for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
 
         // Log the entirety of feed['meta'] for debugging
         $GWiz_GF_OpenAI_Object->log_debug("Feed Meta Data: " . print_r($feed['meta'], true));
