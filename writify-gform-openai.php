@@ -36,6 +36,7 @@ if (class_exists('GFForms')) {
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/parsedown_merge_tag.php';
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/band_score_merge_tag.php';
     require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/overall_band_score_merge_tag.php';
+    require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/generated_band_score_merge_tag.php';
 }
 
 // Add turnitin index
