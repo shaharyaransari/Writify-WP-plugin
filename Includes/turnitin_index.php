@@ -5,7 +5,7 @@ function check_post_plagiarism($post_id)
 
     $post = get_post($post_id);
     if (!$post) {
-        error_log('Failed to retrieve post for plagiarism check.');
+        //error_log('Failed to retrieve post for plagiarism check.');
         return;
     }
 
@@ -53,7 +53,7 @@ function check_post_plagiarism($post_id)
 
     $response_body = wp_remote_retrieve_body($response);
     if (empty($response_body)) {
-        error_log('Empty response body from plagiarism check API.');
+        //error_log('Empty response body from plagiarism check API.');
         return;
     }
 

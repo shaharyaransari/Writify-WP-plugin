@@ -30,7 +30,7 @@ function replace_generated_band_score_merge_tags($text, $form, $entry, $url_enco
             //error_log("Field ID: $field_id, Field Value: $field_value");
 
             $parsedData = parse_field_value($field_value);
-            error_log("Parsed Data for Field ID $field_id: " . print_r($parsedData, true));
+            //error_log("Parsed Data for Field ID $field_id: " . print_r($parsedData, true));
 
             //$bandDescriptors = get_band_descriptors($criterion);
             $band_score = get_lowest_band_score($parsedData, $criterion);
