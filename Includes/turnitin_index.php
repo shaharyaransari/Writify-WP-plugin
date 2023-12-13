@@ -1,7 +1,7 @@
 <?php
 function check_post_plagiarism($post_id)
 {
-    error_log('Starting plagiarism check for post ID: ' . $post_id);
+    //error_log('Starting plagiarism check for post ID: ' . $post_id);
 
     $post = get_post($post_id);
     if (!$post) {
@@ -10,7 +10,7 @@ function check_post_plagiarism($post_id)
     }
 
     $full_content = $post->post_content; // Get the full content of the post
-    error_log('Retrieved post content for plagiarism check: ' . $full_content);
+    //error_log('Retrieved post content for plagiarism check: ' . $full_content);
 
     // Extract content from the beginning to the "<h3>Vocabulary Improvements</h3>" tag
     $target_tag = '<hr />';
@@ -20,7 +20,7 @@ function check_post_plagiarism($post_id)
     // Strip HTML tags from the content
     $content_to_check = strip_tags($content_to_check);
     // Log the content being sent to the API for debugging
-    error_log('Content sent to API: ' . $content_to_check);
+    //error_log('Content sent to API: ' . $content_to_check);
 
     // Prepare the data and headers for the API request
     $api_url = 'https://papersowl.com/plagiarism-checker-send-data';
@@ -35,7 +35,7 @@ function check_post_plagiarism($post_id)
         'text' => $content_to_check
     ];
 
-    error_log('Body sent to API: ' . print_r($body, true));
+    //error_log('Body sent to API: ' . print_r($body, true));
 
     // Use WordPress HTTP API for the request
     $response = wp_remote_post($api_url, [
@@ -45,11 +45,11 @@ function check_post_plagiarism($post_id)
     ]);
 
     if (is_wp_error($response)) {
-        error_log('Error in plagiarism check request: ' . $response->get_error_message());
+        //error_log('Error in plagiarism check request: ' . $response->get_error_message());
         return;
     }
 
-    error_log('Received response from plagiarism check API.');
+    //error_log('Received response from plagiarism check API.');
 
     $response_body = wp_remote_retrieve_body($response);
     if (empty($response_body)) {
@@ -58,11 +58,11 @@ function check_post_plagiarism($post_id)
     }
 
     // Log the entire API response body for debugging
-    error_log('API Response Body: ' . $response_body);
+    //error_log('API Response Body: ' . $response_body);
 
     $result = json_decode($response_body, true);
     if (!$result) {
-        error_log('Failed to decode JSON response from plagiarism check API. Response: ' . $response_body);
+        //error_log('Failed to decode JSON response from plagiarism check API. Response: ' . $response_body);
         return;
     }
 
@@ -70,9 +70,9 @@ function check_post_plagiarism($post_id)
     if (isset($result['percent'])) {
         $turnitin_index = 100 - floatval($result['percent']);
         update_post_meta($post_id, 'turnitin_index', $turnitin_index);
-        error_log('Turnitin index updated for post ID: ' . $post_id . ' with value: ' . $turnitin_index);
+        //error_log('Turnitin index updated for post ID: ' . $post_id . ' with value: ' . $turnitin_index);
     } else {
-        error_log('Turnitin index not found in plagiarism check API response.');
+        //error_log('Turnitin index not found in plagiarism check API response.');
     }
 }
 
