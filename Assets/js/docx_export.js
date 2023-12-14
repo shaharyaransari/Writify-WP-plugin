@@ -306,6 +306,7 @@ async function exportDocument() {
     const commentsForDocx = convertRawCommentsToDocxFormat(rawComments);
 
     // Extract headers from the document
+    let arH = document.getElementsByClassName("ar_header")[0]?.innerText;
     let tH = document.getElementsByClassName("tr_header")[0]?.innerText;
     let ccH = document.getElementsByClassName("cc_header")[0]?.innerText;
     let lrH = document.getElementsByClassName("lr_header")[0]?.innerText;
@@ -317,6 +318,10 @@ async function exportDocument() {
     sectionsChildren.push(...createSectionsWithComments(rawComments));
 
     // Add headers and their respective sections if they exist
+    if (arH) {
+        sectionsChildren.push(createHeaderParagraph(arH));
+        sectionsChildren.push(...createNormalSections("ar_response"));
+    }
     if (tH) {
         sectionsChildren.push(createHeaderParagraph(tH));
         sectionsChildren.push(...createNormalSections("tr_response"));
