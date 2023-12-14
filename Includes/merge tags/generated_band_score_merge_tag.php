@@ -55,17 +55,30 @@ function parse_field_value($field_value)
     $parsedData = [];
 
     foreach ($lines as $line) {
-        // Manually extract text within quotes
+        // Check if line contains double quotes
         $startPos = strpos($line, '"');
         $endPos = strrpos($line, '"');
 
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
+            // Extract text within quotes
             $extractedText = substr($line, $startPos + 1, $endPos - $startPos - 1);
+        } else {
+            // If no quotes, find the position of the colon
+            $colonPos = strpos($line, ':');
+            if ($colonPos !== false) {
+                // Extract the text after the colon until the end of the line
+                $extractedText = trim(substr($line, $colonPos + 1));
+            } else {
+                // If no colon is found, the line can be ignored or handled differently
+                $extractedText = ''; // You can adjust this as needed
+            }
+        }
+
+        if ($extractedText !== '') {
             $parsedData[] = $extractedText;
         }
     }
 
-    //error_log('Bullets extracted: ' . print_r($parsedData, true));
     return $parsedData;
 }
 
@@ -74,7 +87,7 @@ function get_band_descriptors($type)
 {
     $descriptors = [
         'TR' => [
-			9 => [
+            9 => [
                 'The prompt is appropriately addressed and explored in depth.',
                 'Position is clear, fully developed, and directly answers the question/s.',
                 'Ideas are relevant, fully extended, and well-supported.',
@@ -110,7 +123,7 @@ function get_band_descriptors($type)
 
         ],
         'CC' => [
-			9 => [
+            9 => [
                 'The message can be followed effortlessly, cohesion rarely atrracts attention, minimal lapes.',
                 'Skillfully managed.',
                 'Skillfully used with minimal or no lapses.',
@@ -143,7 +156,7 @@ function get_band_descriptors($type)
 
         ],
         'LR' => [
-			9 => [
+            9 => [
                 'Full flexibility and precise use are widely evident.',
                 'A wide range of vocabulary, precise, natural, and sophisticated control of lexical features.',
                 'Extremely rare errors, minimal impact on communication.',
@@ -176,7 +189,7 @@ function get_band_descriptors($type)
 
         ],
         'GRA' => [
-			9 => [
+            9 => [
                 'Wide range used with full flexibility and control.',
                 'Appropriate grammar throughout.',
                 'Well-managed punctuation.',
