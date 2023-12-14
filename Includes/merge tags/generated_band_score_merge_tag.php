@@ -74,6 +74,12 @@ function get_band_descriptors($type)
 {
     $descriptors = [
         'TR' => [
+			9 => [
+                'The prompt is appropriately addressed and explored in depth.',
+                'Position is clear, fully developed, and directly answers the question/s.',
+                'Ideas are relevant, fully extended, and well-supported.',
+                'Extremely rare lapses in content.'
+            ],
             8 => [
                 'Fully and appropriately addresses the prompt.',
                 'Position is clear, well-developed, and consistent.',
@@ -104,6 +110,11 @@ function get_band_descriptors($type)
 
         ],
         'CC' => [
+			9 => [
+                'The message can be followed effortlessly, cohesion rarely atrracts attention, minimal lapes.',
+                'Skillfully managed.',
+                'Skillfully used with minimal or no lapses.',
+            ],
             8 => [
                 'Easy to follow, logically sequenced, well-managed cohesion with minor lapses.',
                 'Used sufficiently and appropriately, with logical idea sequencing.',
@@ -132,6 +143,11 @@ function get_band_descriptors($type)
 
         ],
         'LR' => [
+			9 => [
+                'Full flexibility and precise use are widely evident.',
+                'A wide range of vocabulary, precise, natural, and sophisticated control of lexical features.',
+                'Extremely rare errors, minimal impact on communication.',
+            ],
             8 => [
                 'Uses a broad vocabulary fluently and flexibly for precise meaning.',
                 'Skillfully uses uncommon or idiomatic language, despite occasional inaccuracies.',
@@ -160,6 +176,11 @@ function get_band_descriptors($type)
 
         ],
         'GRA' => [
+			9 => [
+                'Wide range used with full flexibility and control.',
+                'Appropriate grammar throughout.',
+                'Well-managed punctuation.',
+            ],
             8 => [
                 'Wide range used flexibly and accurately.',
                 'Mostly error-free sentences with occasional, minor errors.',
