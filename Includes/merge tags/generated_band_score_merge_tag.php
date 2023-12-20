@@ -2,12 +2,12 @@
 add_filter('gform_custom_merge_tags', 'add_generated_band_score_merge_tags', 10, 4);
 function add_generated_band_score_merge_tags($merge_tags, $form_id, $fields, $element_id)
 {
-    $criteria = ['TR', 'CC', 'LR', 'GRA'];
+    $criteria = ['TR', 'CC', 'LR', 'GRA', 'TA'];
 
     foreach ($criteria as $criterion) {
         $merge_tags[] = array(
-            'label' => "Generated $criterion Band Score",
-            'tag' => "{generated_{$criterion}_band_score_[field_id]}"
+            'label' => "Generated $criterion Band Score (Multiple Fields)",
+            'tag' => "{generated_{$criterion}_band_score_[field_ids]}"
         );
     }
 
@@ -16,31 +16,28 @@ function add_generated_band_score_merge_tags($merge_tags, $form_id, $fields, $el
 add_filter('gform_replace_merge_tags', 'replace_generated_band_score_merge_tags', 10, 7);
 function replace_generated_band_score_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 {
-    //error_log("Starting to replace generated band score merge tags");
-    $criteria = ['TR', 'CC', 'LR', 'GRA'];
+    $criteria = ['TR', 'CC', 'LR', 'GRA', 'TA'];
 
     foreach ($criteria as $criterion) {
-        //error_log("Processing criterion: $criterion");
-        $custom_tag = "/{generated_{$criterion}_band_score_(\d+)}/";
+        $custom_tag = "/{generated_{$criterion}_band_score_(.+?)}/";
         preg_match_all($custom_tag, $text, $matches, PREG_SET_ORDER);
 
         foreach ($matches as $match) {
-            $field_id = $match[1];
-            $field_value = rgar($entry, $field_id);
-            //error_log("Field ID: $field_id, Field Value: $field_value");
+            $field_ids = explode('_', $match[1]);
+            $allFieldValues = [];
 
-            $parsedData = parse_field_value($field_value);
-            //error_log("Parsed Data for Field ID $field_id: " . print_r($parsedData, true));
+            foreach ($field_ids as $field_id) {
+                $field_value = rgar($entry, $field_id);
+                $parsedData = parse_field_value($field_value);
+                $allFieldValues = array_merge($allFieldValues, $parsedData);
+            }
+            error_log("Merged Field Values: " . print_r($allFieldValues, true));
 
-            //$bandDescriptors = get_band_descriptors($criterion);
-            $band_score = get_lowest_band_score($parsedData, $criterion);
-            //error_log("Calculated Band Score for Field ID $field_id: $band_score");
-
+            $band_score = get_lowest_band_score($allFieldValues, $criterion);
             $text = str_replace($match[0], $band_score, $text);
         }
     }
 
-    //error_log("Final text after replacements: $text");
     return $text;
 }
 
@@ -63,14 +60,14 @@ function parse_field_value($field_value)
             // Extract text within quotes
             $extractedText = substr($line, $startPos + 1, $endPos - $startPos - 1);
         } else {
-            // If no quotes, find the position of the colon
+            // Find the position of the colon
             $colonPos = strpos($line, ':');
             if ($colonPos !== false) {
                 // Extract the text after the colon until the end of the line
                 $extractedText = trim(substr($line, $colonPos + 1));
             } else {
-                // If no colon is found, the line can be ignored or handled differently
-                $extractedText = ''; // You can adjust this as needed
+                // If no colon or quotes, add the entire line
+                $extractedText = trim($line);
             }
         }
 
@@ -100,9 +97,9 @@ function get_band_descriptors($type)
                 'Occasional omissions or lapses in content.'
             ],
             7 => [
-                'Addresses the main parts of the prompt.',
+                'Appropriately addresses the main parts of the prompt.',
                 'Position is clear and developed.',
-                'Ideas extended and supported but may lack focus.'
+                'Ideas extended and supported but may over generalise.'
             ],
             6 => [
                 'Addresses the main parts, though some more than others, with appropriate format.',
@@ -113,115 +110,166 @@ function get_band_descriptors($type)
                 'Incompletely addresses main parts, sometimes with inappropriate format.',
                 'Position expressed but not always clear.',
                 'Main ideas are present but limited or not well-developed.',
+                'Some supporting arguments and evidence may be less relevant.'
             ],
             4 => [
                 'Minimal or tangential response, possibly due to misunderstanding, format may be inappropriate.',
                 'Position discernible but not evident.',
                 'Main ideas difficult to identify, lacking relevance or support.',
-                'NOT relevant to the Essay prompt.'
+                'Some details may be irrelevant, there may be some repetition.'
+            ],
+            3 => [
+                'No part of the prompt is adequately addressed, or the prompt has been misunderstood.',
+                'No relevant position can be identified, little direct response to the question/s.',
+                'Few ideas, and irrelevant or insufficiently developed.',
+                'The answer is tangential, possibly due to misunderstanding, large parts of the response may be repetitive.'
+            ],
+            2 => [
+                'Content is barely related to the prompt.',
+                'No position can be identified.',
+                'May be glimpses of one or two ideas without development.'
             ]
 
         ],
         'CC' => [
             9 => [
-                'The message can be followed effortlessly, cohesion rarely atrracts attention, minimal lapes.',
-                'Skillfully managed.',
-                'Skillfully used with minimal or no lapses.',
+                'The message can be followed effortlessly.',
+                'Skillfully managed paragraphs.',
+                'Cohesion rarely attracts attention with minimal or no lapses.'
             ],
             8 => [
-                'Easy to follow, logically sequenced, well-managed cohesion with minor lapses.',
-                'Used sufficiently and appropriately, with logical idea sequencing.',
-                'Skillfully used with occasional lapses.',
+                'Can be followed with ease, logically sequenced.',
+                'Used sufficiently and appropriately, with logical idea sequencing in paragraphs.',
+                'Well-managed cohesion with minor lapses.'
             ],
             7 => [
-                'Generally logically organized, clear progression throughout.',
-                'Generally effective, with mostly logical idea sequencing.',
-                'Flexible use with some inaccuracies or inappropriate amounts.'
+                'Logically organized, clear progression throughout, a few minor lapses may occur.',
+                'Generally effective paragraph use, with mostly logical idea sequencing.',
+                'Flexible use of cohesive devices with some inaccuracies or inappropriate amounts.'
             ],
             6 => [
-                'Mostly coherent arrangement of ideas, clear overall structure.',
-                'Sometimes illogical, central topic may be unclear.',
-                'Lacks flexibility, causing repetition and errors.'
+                'Generally arranged coherently, clear overall progression.',
+                'Sometimes illogical paragraph use, central topic may be unclear.',
+                'Used to some good effect, but cohesion within and/or between sentences may be faulty or mechanical.'
             ],
             5 => [
-                'Not wholly logical organization, lacks overall progression.',
-                'Inadequately used or missing, unclear main topic.',
-                'Main ideas are present but limited or not well-developed.',
+                'Evident organization but not wholly logical, lacks overall progression.',
+                'Inadequately used or missing paragraphs, unclear main topic.',
+                'Limited or overused cohesive devices, with some inaccuracies.'
             ],
             4 => [
                 'Not arranged coherently, no clear progression.',
                 'No paragraphing, no clear main topic.',
-                'Inaccurate, lacks substitution and referencing.'
+                'Inaccurate and repetitive use of basic cohesive devices, lacks clarity in referencing.'
+            ],
+            3 => [
+                'No apparent logical organization, ideas are discernible but difficult to relate.',
+                'Unhelpful attempts at paragraphing.',
+                'Minimal use of sequencers or cohesive devices, causing difficulty in identifying logical relationships between ideas.'
             ]
 
         ],
         'LR' => [
             9 => [
-                'Full flexibility and precise use are widely evident.',
+                'Full flexibility and precise use of vocabulary are widely evident.',
                 'A wide range of vocabulary, precise, natural, and sophisticated control of lexical features.',
-                'Extremely rare errors, minimal impact on communication.',
+                'Extremely rare errors in spelling and word formation, with minimal impact on communication.'
             ],
             8 => [
                 'Uses a broad vocabulary fluently and flexibly for precise meaning.',
                 'Skillfully uses uncommon or idiomatic language, despite occasional inaccuracies.',
-                'Occasional errors, minimal impact on communication.',
+                'Occasional errors in spelling and word formation, with minimal impact on communication.'
             ],
             7 => [
                 'Sufficient vocabulary for some flexibility and precision.',
-                'Shows awareness of style, though with some inappropriate choices.',
-                'Few errors, do not detract from overall clarity.'
+                'Some ability to use less common and/or idiomatic items with an awareness of style and collocation, though with some inappropriate choices.',
+                'Few errors in spelling and word formation, do not detract from overall clarity.'
             ],
             6 => [
                 'Generally adequate vocabulary for the task.',
                 'Generally clear meaning despite limited range or lack of precision.',
-                'Some errors, but do not impede communication.'
+                'Some errors in spelling and word formation, but do not impede communication.'
             ],
             5 => [
                 'Limited but minimally adequate vocabulary for the task.',
-                'Simple vocabulary used accurately, but lacks variation. May have frequent inappropriate choices.',
-                'Noticeable errors, may cause difficulty for the reader.',
+                'Simple vocabulary used accurately, but lacks variation, may have frequent inappropriate choices.',
+                'Noticeable errors in spelling and word formation, may cause difficulty for the reader.'
             ],
             4 => [
                 'Very limited and inadequate vocabulary, basic and repetitive.',
                 'Inappropriate use of memorized phrases or formulaic language.',
-                'Errors may impede meaning.'
+                'Errors in spelling and word formation may impede meaning.'
+            ],
+            3 => [
+                'The resource is inadequate with possible over dependence on input material or memorised language.',
+                'Very limited control of word choice, may severely impede meaning.',
+                'Very limited control of spelling and word formation, errors predominate and may severely impede meaning.'
             ]
 
         ],
         'GRA' => [
             9 => [
-                'Wide range used with full flexibility and control.',
-                'Appropriate grammar throughout.',
-                'Well-managed punctuation.',
+                'Wide range of structures used with full flexibility and control.',
+                'Appropriate grammar and punctuation throughout.'
             ],
             8 => [
-                'Wide range used flexibly and accurately.',
-                'Mostly error-free sentences with occasional, minor errors.',
-                'Well-managed punctuation.',
+                'Wide range of structures used flexibly and accurately.',
+                'Mostly error-free sentences with occasional, minor errors that have minimal impact on communication.'
             ],
             7 => [
                 'Variety of complex structures used with some flexibility and accuracy.',
-                'Many error-free sentences; a few errors that do not impede communication.',
-                'Generally well-controlled punctuation.'
+                'Generally well-controlled grammar and punctuation with frequent error-free sentences; a few errors persist but do not impede communication.'
             ],
             6 => [
                 'Mix of simple and complex forms, with limited flexibility. Less accuracy in complex structures.',
-                'Errors occur but rarely hinder communication.',
-                'Some errors in punctuation.'
+                'Errors in grammar and punctuation occur but rarely hinder communication.'
             ],
             5 => [
-                'Limited range, repetitive. Complex sentences attempted but often faulty.',
-                'Frequent errors that may cause difficulty for the reader.',
-                'Faulty punctuation may be noticeable.',
+                'Limited range of structures, repetitive. Complex sentences attempted but often faulty.',
+                'Frequent grammar errors that may cause difficulty for the reader, punctuation may be faulty.'
             ],
             4 => [
-                'Very limited range, mostly simple sentences, rare use of subordinate clauses.',
-                'Some accurate structures, but frequent errors that may impede meaning.',
-                'Often faulty or inadequate punctuation.'
+                'Very limited range of structures, mostly simple sentences, rare use of subordinate clauses.',
+                'Some accurate structures, but frequent errors that may impede meaning. Punctuation is often faulty or inadequate.'
+            ],
+            3 => [
+                'Attempted sentence forms, but errors in grammar and punctuation predominate.',
+                'Errors in grammar and punctuation predominate, preventing most meaning from coming through.'
             ]
 
         ],
-
+        'TA' => [
+            9 => [
+                'Clear overview with main trends, stages, or differences.',
+                'Skillfully selected key features, clearly presented, highlighted and illustrated.',
+                'Extremely rare lapses in content.'
+            ],
+            8 => [
+                'Occasional omission or lapse in content.'
+            ],
+            7 => [
+                'Covered and clearly highlighted key features, but could be more fully or appropriately illustrated or extended. Data are appropriately categorized.',
+                'Relevant and accurate content with a few omissions or lapses.'
+            ],
+            6 => [
+                'A relevant overview is attempted.',
+                'Covered and adequately highlighted key features. Information is appropriately selected and supported using figures/data.',
+                'Some irrelevant, inappropriate, or inaccurate details.'
+            ],
+            5 => [
+                'Tend to focus on details without referring to the bigger picture.',
+                'Not adequately covered key features, and mechanical recounting of details. No data to support the description.',
+                'Include irrelevant, inappropriate or inaccurate material.'
+            ],
+            4 => [
+                'Inappropriate format.',
+                'Few key features have been selected.',
+                'Irrelevant, repetitive, inaccurate or inappropriate key features.'
+            ],
+            3 => [
+                'Largely irrelevant key features. Present limited and repetitive information.'
+            ]
+        ],
     ];
     return $descriptors[$type] ?? [];
 }
@@ -257,7 +305,7 @@ function get_lowest_band_score($parsedData, $type)
 add_filter('gform_custom_merge_tags', 'add_bullet_points_with_scores_merge_tag', 10, 4);
 function add_bullet_points_with_scores_merge_tag($merge_tags, $form_id, $fields, $element_id)
 {
-    $criteria = ['TR', 'CC', 'LR', 'GRA'];
+    $criteria = ['TR', 'CC', 'LR', 'GRA', 'TA'];
 
     foreach ($criteria as $criterion) {
         $merge_tags[] = array(
@@ -272,7 +320,7 @@ function add_bullet_points_with_scores_merge_tag($merge_tags, $form_id, $fields,
 add_filter('gform_replace_merge_tags', 'replace_bullet_points_with_scores_merge_tag', 10, 7);
 function replace_bullet_points_with_scores_merge_tag($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 {
-    $criteria = ['TR', 'CC', 'LR', 'GRA'];
+    $criteria = ['TR', 'CC', 'LR', 'GRA', 'TA'];
 
     foreach ($criteria as $criterion) {
         $custom_tag = "/{bullet_points_with_scores_{$criterion}_(\d+)}/";
