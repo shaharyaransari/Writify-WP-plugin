@@ -13,7 +13,7 @@ const $myTextDiv = jQuery("#my-text");
 
 function formatText(text) {
     // Updated regex to handle optional line break before "->"
-    const format = /".*"\s*-\> ".*"(\sor\s".*")?\n(Explanation|Giải thích): .*/;
+    const format = /".*"\s*-\>\s*".*"(\sor\s".*")?\s*(Explanation|Giải thích): .*/;
     if (!format.test(text)) return null;
 
     // Extract explanation using either "Explanation" or "Giải thích"
@@ -26,7 +26,7 @@ function formatText(text) {
         secondImprovedVocab = `<span class="or"> or </span><span class="improved-vocab">${secondImprovedVocabMatch[1]}</span>`;
     }
 
-    return text.replace(/"(.*)"\s*-\> "(.*?)"(\sor\s".*")?\n(Explanation: .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
+    return text.replace(/"(.*)"\s*-\>\s*"(.*?)"(\sor\s".*")?\s*((?:Explanation|Giải thích): .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
 }
 
 function createNewDivWithClass(html) {
