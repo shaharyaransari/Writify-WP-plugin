@@ -121,6 +121,8 @@ function writify_enqueue_scripts_footer()
             if (event.data == "[ALLDONE]") {
                 source.close();
             } else if (event.data.startsWith("[DIVINDEX-")) {
+                // Clear the buffer
+                buffer = "";
                 div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
                 div_index = parseInt(div_index_str);
                 console.log(div_index);
