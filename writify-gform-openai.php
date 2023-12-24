@@ -467,6 +467,11 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
                     if ($stream_to_frontend === 'yes') {
                         echo "data: " . $pop_item . PHP_EOL;
                     }
+                    elseif ($stream_to_frontend === 'text') {
+                        // Change the format of the streaming when 'text' is specified
+                        echo "data: " . json_encode(['response' => $line]) . "\n\n";
+                        flush(); // Ensure the data is sent to the client immediately
+                    }
                 }
 
                 //writify_chatgpt_writelog(trim($data)); // Log the raw JSON
@@ -624,9 +629,9 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
                             GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
                             // Append each transcription to the combined string
                             $combined_text .= $text . "\n\n";
-
+                            $streamed_text = $text . "\n\n";
                             // Stream each response using SSE
-                            echo "data: " . json_encode(['response' => $text]) . "\n\n";
+                            echo "data: " . json_encode(['response' => $streamed_text]) . "\n\n";
                             flush(); // Flush data to the browser after each file is transcribed
                         } else {
                             $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
