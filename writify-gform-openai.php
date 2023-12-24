@@ -292,17 +292,15 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
         // Get the model from feed metadata based on user's role or membership
         $model = rgar($feed["meta"], $model_option_name, 'gpt-3.5-turbo');
         $message = $feed["meta"]["chat_completions_message"];
+        // Retrieve the field ID for the image link and then get the URL from the entry
+        $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
+        $image_link_json = rgar($entry, $image_link_field_id);
 
+        // Decode the JSON string to extract the URL
+        $image_link_array = json_decode($image_link_json, true);
+        $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
         // Parse the merge tags in the message.
-        $message = GFCommon::replace_variables(
-            $message,
-            $form,
-            $entry,
-            false,
-            false,
-            false,
-            "text"
-        );
+        $message = GFCommon::replace_variables($message, $form, $entry, false, false, false, "text");
 
         GFAPI::add_note(
             $entry["id"],
@@ -331,11 +329,24 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
             )
         );
 
+        // Check if the model is GPT-4 Vision and if the image link is not empty
+        if (strpos($model, 'vision') !== false && !empty($image_link)) {
+            // Construct content with text and image URL
+            $content = array(
+                array('type' => 'text', 'text' => $message),
+                array('type' => 'image_url', 'image_url' => array('url' => $image_link))
+            );
+        } else {
+            // Construct content with only text
+            $content = $message;
+        }
+
+        // Create the request body
         $body = [
             "messages" => [
                 [
                     "role" => "user",
-                    "content" => $message,
+                    "content" => $content,
                 ],
             ],
             "model" => $model,
