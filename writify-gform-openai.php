@@ -109,6 +109,7 @@ function writify_enqueue_scripts_footer()
     <script>
         var div_index = 0, div_index_str = '';
         var buffer = ""; // Buffer for holding messages
+        var responseBuffer = '';
         var md = new Remarkable();
 
         const formId = <?php echo json_encode($form_id); ?>;
@@ -146,14 +147,26 @@ function writify_enqueue_scripts_footer()
             }
             else if (event.data.startsWith('{"response":')) {
                 var jsonResponse = JSON.parse(event.data);
-                var whisperResponse = jsonResponse.response; // Extract the response text
 
-                // Convert Whisper response to HTML using Markdown
-                var html = md.render(whisperResponse);
-
-                // Update the content of the 'my-text' div
-                var myTextDiv = document.getElementById('my-text');
-                myTextDiv.innerHTML += html;
+                if (jsonResponse.streamType === 'question') {
+                    // Handling question stream in chunks
+                    var questionChunk = jsonResponse.response;
+                    if (questionChunk !== undefined) {
+                        responseBuffer += questionChunk;
+                        var html = md.render(responseBuffer);
+                        var questionDiv = document.querySelector('.essay_prompt .elementor-widget-container');
+                        questionDiv.innerHTML = html;
+                    }
+                } else {
+                    // Handling my-text stream in chunks
+                    var responseChunk = jsonResponse.response;
+                    if (responseChunk !== undefined) {
+                        responseBuffer += responseChunk;
+                        var html = md.render(responseBuffer);
+                        var myTextDiv = document.getElementById('my-text');
+                        myTextDiv.innerHTML = html;
+                    }
+                }
             }
             else {
                 // Add the message to the buffer
@@ -467,9 +480,15 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
                     if ($stream_to_frontend === 'yes') {
                         echo "data: " . $pop_item . PHP_EOL;
                     }
-                    elseif ($stream_to_frontend === 'text') {
-                        // Change the format of the streaming when 'text' is specified
-                        echo "data: " . json_encode(['response' => $line]) . "\n\n";
+                    if ($stream_to_frontend === 'question') {
+                        if (!empty($line)) {
+                            echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
+                        }
+                    }
+                    if ($stream_to_frontend === 'text') {
+                        if (!empty($line)) { // Only send non-empty lines
+                            echo "data: " . json_encode(['response' => $line]) . "\n\n";
+                        }
                         flush(); // Ensure the data is sent to the client immediately
                     }
                 }
@@ -629,9 +648,9 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
                             GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
                             // Append each transcription to the combined string
                             $combined_text .= $text . "\n\n";
-                            $streamed_text = $text . "\n\n";
+
                             // Stream each response using SSE
-                            echo "data: " . json_encode(['response' => $streamed_text]) . "\n\n";
+                            echo "data: " . json_encode(['response' => $text]) . "\n\n";
                             flush(); // Flush data to the browser after each file is transcribed
                         } else {
                             $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
