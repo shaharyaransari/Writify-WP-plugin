@@ -88,7 +88,7 @@ function get_band_descriptors($type)
                 'The prompt is appropriately addressed and explored in depth.',
                 'Position is clear, fully developed, and directly answers the question/s.',
                 'Ideas are relevant, fully extended, and well-supported.',
-                'Extremely rare lapses in content.'
+                'Extremely rare lapses in content or support.'
             ],
             8 => [
                 'Fully and appropriately addresses the prompt.',
@@ -110,7 +110,7 @@ function get_band_descriptors($type)
                 'Incompletely addresses main parts, sometimes with inappropriate format.',
                 'Position expressed but not always clear.',
                 'Main ideas are present but limited or not well-developed.',
-                'Some supporting arguments and evidence may be less relevant.'
+                'Some details may be irrelevant, there may be some repetition.'
             ],
             4 => [
                 'Minimal or tangential response, possibly due to misunderstanding, format may be inappropriate.',
@@ -122,7 +122,7 @@ function get_band_descriptors($type)
                 'No part of the prompt is adequately addressed, or the prompt has been misunderstood.',
                 'No relevant position can be identified, little direct response to the question/s.',
                 'Few ideas, and irrelevant or insufficiently developed.',
-                'The answer is tangential, possibly due to misunderstanding, large parts of the response may be repetitive.'
+                'The prompt has been misunderstood.'
             ],
             2 => [
                 'Content is barely related to the prompt.',
@@ -155,17 +155,17 @@ function get_band_descriptors($type)
             5 => [
                 'Evident organization but not wholly logical, lacks overall progression.',
                 'Inadequately used or missing paragraphs, unclear main topic.',
-                'Limited or overused cohesive devices, with some inaccuracies.'
+                'Limited or overused, with some inaccuracies. Inadequate and/or inaccurate use of reference and substitution, causing repetition.'
             ],
             4 => [
                 'Not arranged coherently, no clear progression.',
                 'No paragraphing, no clear main topic.',
-                'Inaccurate and repetitive use of basic cohesive devices, lacks clarity in referencing.'
+                'Inaccurate and repetitive use of basic cohesive devices, lacks or inaccurate use of substitution and referencing.'
             ],
             3 => [
                 'No apparent logical organization, ideas are discernible but difficult to relate.',
                 'Unhelpful attempts at paragraphing.',
-                'Minimal use of sequencers or cohesive devices, causing difficulty in identifying logical relationships between ideas.'
+                'Minimal use of sequencers or cohesive devices, not necessarily indicate a logical relationship between ideas, cause difficulty in identifying referencing.'
             ]
 
         ],
@@ -348,11 +348,26 @@ function process_field_for_scores($field_value, $type)
     $processedText = '';
 
     foreach ($lines as $line) {
+        $extractedText = '';
         $startPos = strpos($line, '"');
         $endPos = strrpos($line, '"');
+        $colonPos = strpos($line, ':');
 
+        // Extract text within quotes
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
             $extractedText = substr($line, $startPos + 1, $endPos - $startPos - 1);
+        }
+        // Extract text after the colon
+        elseif ($colonPos !== false) {
+            $extractedText = trim(substr($line, $colonPos + 1));
+        }
+        // Use the entire line if no quotes or colon
+        else {
+            $extractedText = trim($line);
+        }
+
+        // Process the extracted text
+        if ($extractedText !== '') {
             $bandScore = get_band_score_for_text($extractedText, $type);
             if (!empty($bandScore)) {
                 $processedText .= $line . ' - Characteristic of Band **' . $bandScore . "**\n";
