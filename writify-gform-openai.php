@@ -43,8 +43,20 @@ if (class_exists('GFForms')) {
 // Add turnitin index
 require_once plugin_dir_path(__FILE__) . 'Includes/turnitin_index.php';
 
+/**
+ * This is for the form to redirect user to the result page immediately after submission, the default behavior is to process OpenAI feeds before redirection.
+ * This code adds a filter to the "gform_gravityforms-openai_pre_process_feeds" hook.
+ * The filter callback function "__return_empty_string" is used to return an empty string.
+ * This effectively prevents any processing of feeds for the "gform_gravityforms-openai_pre_process_feeds" hook.
+ */
 add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string');
 
+/**
+ * Retrieves the Open AI feeds associated with a specific form.
+ *
+ * @param int|null $form_id The ID of the form. If null, retrieves feeds for all forms.
+ * @return array An array of feeds.
+ */
 function writify_get_feeds($form_id = null)
 {
     global $wpdb;
@@ -67,6 +79,11 @@ function writify_get_feeds($form_id = null)
     return $results;
 }
 
+/**
+ * Registers the REST route for the event stream openai.
+ *
+ * @return void
+ */
 function writify_register_routes()
 {
     register_rest_route(
