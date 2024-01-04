@@ -191,6 +191,11 @@ function writify_enqueue_scripts_footer()
     <?php
 }
 
+/**
+ * Enqueues necessary scripts and styles based on the current post slug.
+ *
+ * @return void
+ */
 function writify_enqueue_scripts()
 {
     // Get current post
@@ -219,12 +224,15 @@ function writify_enqueue_scripts()
                 $lastName .= " from IELTS Science"; // Add "from IELTS Science" to the last name
             }
 
+            // Prepare data to pass to the script
             $data_to_pass = array(
                 'firstName' => $firstName,
                 'lastName' => $lastName
             );
+
             // Localize the script with the data
             wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
+
             // Enqueue Remarkable Markdown Parser
             wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
 
@@ -237,8 +245,10 @@ function writify_enqueue_scripts()
             // Enqueue the result page styles
             wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
         }
+
         // Enqueue the script only if the slug starts with 'speaking-result'
         if (substr($slug, 0, 15) === 'speaking-result') {
+            // Enqueue necessary scripts
             wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.0', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
@@ -256,12 +266,15 @@ function writify_enqueue_scripts()
                 $lastName .= " from IELTS Science"; // Add "IELTS Science" to the last name
             }
 
+            // Prepare data to pass to the script
             $data_to_pass = array(
                 'firstName' => $firstName,
                 'lastName' => $lastName
             );
+
             // Localize the script with the data
             wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
+
             // Enqueue Remarkable Markdown Parser
             wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
 
@@ -280,6 +293,15 @@ function writify_enqueue_scripts()
 add_action('wp_enqueue_scripts', 'writify_enqueue_scripts');
 
 
+/**
+ * Makes a request to the OpenAI API for chat completions and Whisper and stream the reponse to the front end.
+ *
+ * @param array $feed The feed settings.
+ * @param array $entry The entry id.
+ * @param array $form The form id.
+ * @param string $stream_to_frontend Whether to stream the response to the frontend.
+ * @return void
+ */
 function writify_make_request($feed, $entry, $form, $stream_to_frontend)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
@@ -713,6 +735,12 @@ function get_user_primary_identifier()
     return $primary_identifier;
 }
 
+/**
+ * Handles the event stream for OpenAI processing, this function is called when front end make Rest API call to the back end.
+ *
+ * @param WP_REST_Request $request The REST request object.
+ * @return WP_Error|void Returns a WP_Error object if the nonce is invalid, otherwise void.
+ */
 function event_stream_openai(WP_REST_Request $request)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
@@ -875,6 +903,13 @@ function event_stream_openai(WP_REST_Request $request)
     die();
 }
 
+/**
+ * Updates a post using the Advanced Post Creation add-on after a Gravity Forms entry is finished processing by Open AI.
+ *
+ * @param array $form The form object.
+ * @param int $entry_id The ID of the entry being updated.
+ * @return void
+ */
 function writify_update_post_advancedpostcreation($form, $entry_id)
 {
 
