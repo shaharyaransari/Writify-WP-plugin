@@ -42,6 +42,12 @@ function replace_generated_band_score_merge_tags($text, $form, $entry, $url_enco
 }
 
 
+/**
+ * Parses the field value and extracts relevant data to match to Band Descriptor.
+ *
+ * @param string $field_value The field value to be parsed.
+ * @return array The parsed data extracted from the field value.
+ */
 function parse_field_value($field_value)
 {
     // Normalize line breaks to a single type (\n)

@@ -11,6 +11,12 @@
 const $document = jQuery(document);
 const $myTextDiv = jQuery("#my-text");
 
+/**
+ * Formats the given text according to vocab upgrade pattern.
+ * 
+ * @param {string} text - The text to be formatted.
+ * @returns {string|null} - The formatted text or null if the text does not match the pattern.
+ */
 function formatText(text) {
     // Updated regex to handle optional line break before "->"
     const format = /".*"\s*-\>\s*".*"(\sor\s".*")?\s*(Explanation|Giải thích): .*/;
@@ -29,6 +35,11 @@ function formatText(text) {
     return text.replace(/"(.*)"\s*-\>\s*"(.*?)"(\sor\s".*")?\s*((?:Explanation|Giải thích): .*)/, `<span class="original-vocab">$1</span><span class="arrow">-\></span> <span class="improved-vocab">$2</span>${secondImprovedVocab}<span class="short-explanation"> · ${firstSentence}</span><br><span class="explanation">$4</span>`);
 }
 
+/**
+ * Creates a new div element with upgrade_vocab and HTML content.
+ * @param {string} html - The HTML content to be inserted into the div.
+ * @returns {jQuery} - The newly created div element.
+ */
 function createNewDivWithClass(html) {
     return jQuery('<div/>', {
         class: 'upgrade_vocab',
@@ -36,6 +47,10 @@ function createNewDivWithClass(html) {
     });
 }
 
+/**
+ * Hides certain elements and shows others when interacting.
+ * @param {jQuery} $newDiv - The jQuery object representing the div element.
+ */
 function hideAndShowElements($newDiv) {
     const $elementsToHide = $newDiv.find(".arrow, .or, .improved-vocab, .explanation");
     const $elementsToShow = $newDiv.find(".original-vocab, .short-explanation");
@@ -43,6 +58,12 @@ function hideAndShowElements($newDiv) {
     $elementsToShow.slideDown(200);
 }
 
+/**
+ * Adds a click event listener to upgrade_vocab element.
+ * 
+ * @param {jQuery} $newDiv - The jQuery object representing the div element.
+ * @param {string} updatedText - The updated text to be used for processing.
+ */
 function addClickEventListenerToDiv($newDiv, updatedText) {
     $newDiv.on('click', function (event) {
         event.stopPropagation();
@@ -105,6 +126,12 @@ function addClickEventListenerToDiv($newDiv, updatedText) {
     });
 }
 
+/**
+ * Adds a click event listener to the improved vocab element.
+ * 
+ * @param {jQuery} $newDiv - The jQuery object representing the new div element.
+ * @param {string} updatedText - The updated text containing the original and improved vocab.
+ */
 function addClickEventListenerToImprovedVocab($newDiv, updatedText) {
     $newDiv.find(".improved-vocab").on('click', function (event) {
         event.stopPropagation(); // Prevent the event from bubbling up to the document
@@ -139,6 +166,11 @@ function addClickEventListenerToImprovedVocab($newDiv, updatedText) {
     });
 }
 
+/**
+ * Adds an upgrade vocab class to the specified div element.
+ * 
+ * @param {jQuery} div - The div element to add the upgrade vocab class to.
+ */
 function addUpgradeVocabClass(div) {
     const listItems = div.find("li");
 
