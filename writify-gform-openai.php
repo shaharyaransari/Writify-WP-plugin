@@ -322,407 +322,399 @@ add_action('wp_enqueue_scripts', 'writify_enqueue_scripts');
 function writify_make_request($feed, $entry, $form, $stream_to_frontend)
 {
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
-
-    //$headers = $GWiz_GF_OpenAI_Object->get_headers();
-
     $endpoint = $feed["meta"]["endpoint"];
 
-    if ($endpoint === "chat/completions") {
-        // Identify the user role or membership title from the API request
-        $primary_identifier = get_user_primary_identifier();
-        // Log primary role or membership title for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
+    switch ($endpoint) {
+        case "chat/completions":
+            return writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, $form, $stream_to_frontend, $endpoint);
+        case "whisper":
+            return writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form);
+    }
+}
 
-        // Get the saved API base for the user role or membership from the feed settings
-        $option_name = 'api_base_' . $primary_identifier;
-        $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, $form, $stream_to_frontend, $endpoint)
+{
 
-        // Log API base for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
-        $model_option_name = 'chat_completion_model_' . $primary_identifier;
+    // Identify the user role or membership title from the API request
+    $primary_identifier = get_user_primary_identifier();
+    // Log primary role or membership title for debugging
+    $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
 
-        // Get the model from feed metadata based on user's role or membership
-        $model = rgar($feed["meta"], $model_option_name, 'gpt-3.5-turbo');
-        $message = $feed["meta"]["chat_completions_message"];
-        // Retrieve the field ID for the image link and then get the URL from the entry
-        $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
-        $image_link_json = rgar($entry, $image_link_field_id);
+    // Get the saved API base for the user role or membership from the feed settings
+    $option_name = 'api_base_' . $primary_identifier;
+    $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
 
-        // Decode the JSON string to extract the URL
-        $image_link_array = json_decode($image_link_json, true);
-        $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
-        // Parse the merge tags in the message.
-        $message = GFCommon::replace_variables($message, $form, $entry, false, false, false, "text");
+    // Log API base for debugging
+    $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
+    $model_option_name = 'chat_completion_model_' . $primary_identifier;
 
-        GFAPI::add_note(
-            $entry["id"],
-            0,
-            "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
-            sprintf(
-                __(
-                    "Sent request to OpenAI chat/completions endpoint.",
-                    "gravityforms-openai"
-                )
+    // Get the model from feed metadata based on user's role or membership
+    $model = rgar($feed["meta"], $model_option_name, 'gpt-3.5-turbo');
+    $message = $feed["meta"]["chat_completions_message"];
+    // Retrieve the field ID for the image link and then get the URL from the entry
+    $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
+    $image_link_json = rgar($entry, $image_link_field_id);
+
+    // Decode the JSON string to extract the URL
+    $image_link_array = json_decode($image_link_json, true);
+    $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
+    // Parse the merge tags in the message.
+    $message = GFCommon::replace_variables($message, $form, $entry, false, false, false, "text");
+
+    GFAPI::add_note(
+        $entry["id"],
+        0,
+        "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
+        sprintf(
+            __(
+                "Sent request to OpenAI chat/completions endpoint.",
+                "gravityforms-openai"
             )
+        )
+    );
+
+    // translators: placeholders are the feed name, model, prompt
+    $GWiz_GF_OpenAI_Object->log_debug(
+        __METHOD__ .
+        "(): " .
+        sprintf(
+            __(
+                'Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s',
+                "gravityforms-openai"
+            ),
+            $feed["meta"]["feed_name"],
+            $model,
+            $message
+        )
+    );
+
+    // Check if the model is GPT-4 Vision and if the image link is not empty
+    if (strpos($model, 'vision') !== false && !empty($image_link)) {
+        // Construct content with text and image URL
+        $content = array(
+            array('type' => 'text', 'text' => $message),
+            array('type' => 'image_url', 'image_url' => array('url' => $image_link))
         );
+    } else {
+        // Construct content with only text
+        $content = $message;
+    }
 
-        // translators: placeholders are the feed name, model, prompt
-        $GWiz_GF_OpenAI_Object->log_debug(
-            __METHOD__ .
-            "(): " .
-            sprintf(
-                __(
-                    'Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s',
-                    "gravityforms-openai"
-                ),
-                $feed["meta"]["feed_name"],
-                $model,
-                $message
-            )
-        );
-
-        // Check if the model is GPT-4 Vision and if the image link is not empty
-        if (strpos($model, 'vision') !== false && !empty($image_link)) {
-            // Construct content with text and image URL
-            $content = array(
-                array('type' => 'text', 'text' => $message),
-                array('type' => 'image_url', 'image_url' => array('url' => $image_link))
-            );
-        } else {
-            // Construct content with only text
-            $content = $message;
-        }
-
-        // Create the request body
-        $body = [
-            "messages" => [
-                [
-                    "role" => "user",
-                    "content" => $content,
-                ],
+    // Create the request body
+    $body = [
+        "messages" => [
+            [
+                "role" => "user",
+                "content" => $content,
             ],
-            "model" => $model,
+        ],
+        "model" => $model,
+    ];
+
+    $url = $api_base . $endpoint;
+
+    if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
+        $url .= '?api-version=2023-03-15-preview';
+    }
+
+    $body["max_tokens"] = (float) rgar(
+        $feed["meta"],
+        $endpoint . "_" . "max_tokens",
+        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+            "max_tokens"
+        ]
+    );
+    $body["temperature"] = (float) rgar(
+        $feed["meta"],
+        $endpoint . "_" . "temperature",
+        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+            "temperature"
+        ]
+    );
+    $body["top_p"] = (float) rgar(
+        $feed["meta"],
+        $endpoint . "_" . "top_p",
+        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+            "top_p"
+        ]
+    );
+    $body["frequency_penalty"] = (float) rgar(
+        $feed["meta"],
+        $endpoint . "_" . "frequency_penalty",
+        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+            "frequency_penalty"
+        ]
+    );
+    $body["presence_penalty"] = (float) rgar(
+        $feed["meta"],
+        $endpoint . "_" . "presence_penalty",
+        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+            "presence_penalty"
+        ]
+    );
+
+    $body["stream"] = true;
+
+    // Add retry mechanism
+    $max_retries = 20;
+    $retry_count = 0;
+
+    do {
+        $retry = false;
+
+        // Regenerate headers before each retry
+        $headers = $GWiz_GF_OpenAI_Object->get_headers();
+
+        // Set the new headers
+        $header = [
+            "Content-Type: " . $headers["Content-Type"],
+            "Authorization: " . $headers["Authorization"],
+            "api-key: " . $headers["api-key"]
         ];
 
-        // Log the entirety of feed['meta'] for debugging
-        $GWiz_GF_OpenAI_Object->log_debug("Feed Meta Data: " . print_r($feed['meta'], true));
-
-        $url = $api_base . $endpoint;
-
-        if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
-            $url .= '?api-version=2023-03-15-preview';
+        if (isset($headers['OpenAI-Organization'])) {
+            $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
         }
 
-        $body["max_tokens"] = (float) rgar(
-            $feed["meta"],
-            $endpoint . "_" . "max_tokens",
-            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-                "max_tokens"
-            ]
-        );
-        $body["temperature"] = (float) rgar(
-            $feed["meta"],
-            $endpoint . "_" . "temperature",
-            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-                "temperature"
-            ]
-        );
-        $body["top_p"] = (float) rgar(
-            $feed["meta"],
-            $endpoint . "_" . "top_p",
-            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-                "top_p"
-            ]
-        );
-        $body["frequency_penalty"] = (float) rgar(
-            $feed["meta"],
-            $endpoint . "_" . "frequency_penalty",
-            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-                "frequency_penalty"
-            ]
-        );
-        $body["presence_penalty"] = (float) rgar(
-            $feed["meta"],
-            $endpoint . "_" . "presence_penalty",
-            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-                "presence_penalty"
-            ]
-        );
+        $post_json = json_encode($body);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
 
-        $body["stream"] = true;
+        $object = new stdClass();
+        $object->res = "";
+        $object->error = "";
 
-        // Add retry mechanism
-        $max_retries = 20;
-        $retry_count = 0;
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend) {
+            $pop_arr = explode("data: ", $data);
 
-        do {
-            $retry = false;
+            foreach ($pop_arr as $pop_item) {
+                if (trim($pop_item) === '[DONE]') {
+                    continue; // Skip this iteration and don't process or echo the [DONE] segment.
+                }
 
-            // Regenerate headers before each retry
-            $headers = $GWiz_GF_OpenAI_Object->get_headers();
-
-            // Set the new headers
-            $header = [
-                "Content-Type: " . $headers["Content-Type"],
-                "Authorization: " . $headers["Authorization"],
-                "api-key: " . $headers["api-key"]
-            ];
-
-            if (isset($headers['OpenAI-Organization'])) {
-                $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
-            }
-
-            $post_json = json_encode($body);
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_URL, $url);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_POST, 1);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
-
-            // Log the Request Details
-            $GWiz_GF_OpenAI_Object->log_debug("Request URL: " . $url);
-            $GWiz_GF_OpenAI_Object->log_debug("Request Headers: " . json_encode($header));
-            $GWiz_GF_OpenAI_Object->log_debug("Request Body: " . $post_json);
-
-            $object = new stdClass();
-            $object->res = "";
-            $object->error = "";
-
-            curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend) {
-                $pop_arr = explode("data: ", $data);
-
-                foreach ($pop_arr as $pop_item) {
-                    if (trim($pop_item) === '[DONE]') {
-                        continue; // Skip this iteration and don't process or echo the [DONE] segment.
+                $pop_js = json_decode($pop_item, true);
+                if (isset($pop_js["choices"])) {
+                    $line = isset($pop_js["choices"][0]["delta"]["content"])
+                        ? $pop_js["choices"][0]["delta"]["content"]
+                        : "";
+                    if (!empty($line) || $line == "1" || $line == "0") {
+                        $object->res .= $line;
                     }
-
-                    $pop_js = json_decode($pop_item, true);
-                    if (isset($pop_js["choices"])) {
-                        $line = isset($pop_js["choices"][0]["delta"]["content"])
-                            ? $pop_js["choices"][0]["delta"]["content"]
-                            : "";
-                        if (!empty($line) || $line == "1" || $line == "0") {
-                            $object->res .= $line;
-                        }
-                    } elseif (isset($pop_js['error'])) {
-                        if (isset($pop_js['error']['message'])) {
-                            $object->error = $pop_js['error']['message'];
-                        }
-                        if (isset($pop_js['error']['detail'])) {
-                            $object->error = $pop_js['error']['detail'];
-                        }
+                } elseif (isset($pop_js['error'])) {
+                    if (isset($pop_js['error']['message'])) {
+                        $object->error = $pop_js['error']['message'];
                     }
-
-                    if ($stream_to_frontend === 'yes') {
-                        echo "data: " . $pop_item . PHP_EOL;
-                    }
-                    if ($stream_to_frontend === 'question') {
-                        if (!empty($line)) {
-                            echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
-                        }
-                    }
-                    if ($stream_to_frontend === 'text') {
-                        if (!empty($line)) { // Only send non-empty lines
-                            echo "data: " . json_encode(['response' => $line]) . "\n\n";
-                        }
-                        flush(); // Ensure the data is sent to the client immediately
+                    if (isset($pop_js['error']['detail'])) {
+                        $object->error = $pop_js['error']['detail'];
                     }
                 }
 
-                //writify_chatgpt_writelog(trim($data)); // Log the raw JSON
-
-                return strlen($data);
-            });
-
-            curl_exec($ch);
-            $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-            // Check and Log cURL Errors
-            if (curl_errno($ch)) {
-                $error_msg = curl_error($ch);
-                $GWiz_GF_OpenAI_Object->log_debug("cURL Error: " . $error_msg);
-            }
-            curl_close($ch);
-
-            if (!empty($object->res)) {
-                GFAPI::add_note(
-                    $entry["id"],
-                    0,
-                    "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
-                    $object->res
-                );
-                $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field(
-                    $feed,
-                    $entry,
-                    $form,
-                    $object->res
-                );
-
-                // Update the entry in the database
-                $result = GFAPI::update_entry($entry);
-                // Log the result of the entry update.
-                if (is_wp_error($result)) {
-                    GFCommon::log_debug('Entry update failed' . ' Error: ' . $result->get_error_message());
-                } else {
-                    GFCommon::log_debug('writify_update_post_advancedpostcreation(): Entry updated successfully');
+                if ($stream_to_frontend === 'yes') {
+                    echo "data: " . $pop_item . PHP_EOL;
                 }
-                /*if (is_wp_error($result)) {
-                    error_log('Failed to update entry: ' . $result->get_error_message());
-                }*/
+                if ($stream_to_frontend === 'question') {
+                    if (!empty($line)) {
+                        echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
+                    }
+                }
+                if ($stream_to_frontend === 'text') {
+                    if (!empty($line)) { // Only send non-empty lines
+                        echo "data: " . json_encode(['response' => $line]) . "\n\n";
+                    }
+                    flush(); // Ensure the data is sent to the client immediately
+                }
+            }
 
+            return strlen($data);
+        });
+
+        curl_exec($ch);
+        $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        // Check and Log cURL Errors
+        if (curl_errno($ch)) {
+            $error_msg = curl_error($ch);
+            $GWiz_GF_OpenAI_Object->log_debug("cURL Error: " . $error_msg);
+        }
+        curl_close($ch);
+
+        if (!empty($object->res)) {
+            GFAPI::add_note(
+                $entry["id"],
+                0,
+                "OpenAI Response (" . $feed["meta"]["feed_name"] . ")",
+                $object->res
+            );
+            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field(
+                $feed,
+                $entry,
+                $form,
+                $object->res
+            );
+
+            // Update the entry in the database
+            $result = GFAPI::update_entry($entry);
+            // Log the result of the entry update.
+            if (is_wp_error($result)) {
+                GFCommon::log_debug('Entry update failed' . ' Error: ' . $result->get_error_message());
             } else {
-                if ($http_status !== 200 || !empty($object->error)) {
-                    $retry_count++;
-                    if ($retry_count <= $max_retries) {
-                        $retry = true;
-                        sleep(2); // Optional: add sleep time before retrying
-                        $GWiz_GF_OpenAI_Object->add_feed_error(
-                            $object->error,
-                            $feed,
-                            $entry,
-                            $form
-                        );
-                        GFAPI::add_note(
-                            $entry["id"],
-                            0,
-                            "Retrying after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->error
-                        );
-                    } else {
-                        $GWiz_GF_OpenAI_Object->add_feed_error(
-                            $object->error,
-                            $feed,
-                            $entry,
-                            $form
-                        );
-                        GFAPI::add_note(
-                            $entry["id"],
-                            0,
-                            "Stopped retry after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
-                            $object->error
-                        );
-                        return $object;
-                    }
-                }
+                GFCommon::log_debug('writify_update_post_advancedpostcreation(): Entry updated successfully');
             }
-        } while ($retry);
 
-        gform_add_meta(
-            $entry["id"],
-            "openai_response_" . $feed["id"],
-            $object->res
-        );
-
-        return $entry;
-    }
-    // Add handling for the Whisper API endpoint
-    if ($endpoint === "whisper") {
-        // Get file field ID, model, prompt, and language from the feed settings
-        $model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
-        $file_field_id = rgar($feed['meta'], 'whisper_file_field');
-        $prompt = rgar($feed['meta'], 'whisper_prompt', "A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. Describe a famous destination. Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...");
-        $language = rgar($feed['meta'], 'whisper_language', 'en');
-
-        // Logging the feed settings
-        $GWiz_GF_OpenAI_Object->log_debug("Whisper feed settings: Model: {$model}, File Field ID: {$file_field_id}, Prompt: {$prompt}, Language: {$language}");
-
-        // Get the file URLs from the entry (assuming it returns an array of URLs)
-        $file_urls = rgar($entry, $file_field_id);
-        $GWiz_GF_OpenAI_Object->log_debug("File URLs: " . print_r($file_urls, true));
-
-        $combined_text = ""; // Initialize a string to store all transcriptions
-
-        // Decode JSON string to array if necessary
-        if (is_string($file_urls)) {
-            $file_urls = json_decode($file_urls, true);
-            $GWiz_GF_OpenAI_Object->log_debug("Decoded file URLs: " . print_r($file_urls, true));
-        }
-
-        // Proceed only if $file_urls is an array
-        if (is_array($file_urls)) {
-            foreach ($file_urls as $file_url) {
-                $GWiz_GF_OpenAI_Object->log_debug("Processing file URL: {$file_url}");
-                $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
-                $GWiz_GF_OpenAI_Object->log_debug("Converted file path: {$file_path}");
-
-                if (is_readable($file_path)) {
-                    $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
-                    $body = array(
-                        'file' => $curl_file,
-                        'model' => $model,
-                        'prompt' => $prompt,
-                        'language' => $language
+        } else {
+            if ($http_status !== 200 || !empty($object->error)) {
+                $retry_count++;
+                if ($retry_count <= $max_retries) {
+                    $retry = true;
+                    sleep(2); // Optional: add sleep time before retrying
+                    $GWiz_GF_OpenAI_Object->add_feed_error(
+                        $object->error,
+                        $feed,
+                        $entry,
+                        $form
                     );
-                    $GWiz_GF_OpenAI_Object->log_debug("Request body for Whisper API: " . print_r($body, true));
-
                     GFAPI::add_note(
                         $entry["id"],
                         0,
-                        "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
-                        sprintf(
-                            __(
-                                "Sent request to OpenAI audio/tráncription endpoint.",
-                                "gravityforms-openai"
-                            )
-                        )
+                        "Retrying after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                        $object->error
                     );
-
-                    $response = $GWiz_GF_OpenAI_Object->make_request('audio/transcriptions', $body, $feed);
-                    $GWiz_GF_OpenAI_Object->log_debug("Response from Whisper API: " . print_r($response, true));
-
-
-                    if (is_wp_error($response)) {
-                        $GWiz_GF_OpenAI_Object->log_debug("Error from Whisper API: " . $response->get_error_message());
-                        $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
-                    } else if (rgar($response, 'error')) {
-                        $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
-                        $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
-                    } else {
-                        $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
-                        $GWiz_GF_OpenAI_Object->log_debug("Transcription text: {$text}");
-                        if (!is_wp_error($text)) {
-                            GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
-                            // Append each transcription to the combined string
-                            $combined_text .= $text . "\n\n";
-
-                            // Stream each response using SSE
-                            echo "data: " . json_encode(['response' => $text]) . "\n\n";
-                            flush(); // Flush data to the browser after each file is transcribed
-                        } else {
-                            $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
-                            $GWiz_GF_OpenAI_Object->add_feed_error($text->get_error_message(), $feed, $entry, $form);
-                        }
-                    }
                 } else {
-                    $GWiz_GF_OpenAI_Object->log_debug("File not accessible: {$file_path}");
-                    $GWiz_GF_OpenAI_Object->add_feed_error("File is not accessible or does not exist: " . $file_path, $feed, $entry, $form);
+                    $GWiz_GF_OpenAI_Object->add_feed_error(
+                        $object->error,
+                        $feed,
+                        $entry,
+                        $form
+                    );
+                    GFAPI::add_note(
+                        $entry["id"],
+                        0,
+                        "Stopped retry after OpenAI Error Response (" . $feed["meta"]["feed_name"] . ")",
+                        $object->error
+                    );
+                    return $object;
                 }
             }
-        } else {
-            $GWiz_GF_OpenAI_Object->log_debug("file_urls is not an array.");
         }
+    } while ($retry);
 
-        // Logging the combined text
-        $GWiz_GF_OpenAI_Object->log_debug("Combined transcription text: {$combined_text}");
+    gform_add_meta(
+        $entry["id"],
+        "openai_response_" . $feed["id"],
+        $object->res
+    );
 
-        // Update the entry with the combined transcriptions
-        if (!empty($combined_text)) {
-            GFAPI::add_note($entry['id'], 0, 'Whisper API Combined Response', $combined_text);
-            $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
+    return $entry;
 
-            // Optionally, store the combined text as a meta for the entry
-            gform_add_meta($entry['id'], 'whisper_combined_response', $combined_text);
-        }
+}
 
-        return $entry;
-    } else {
-        $object = new stdClass();
-        $object->error = "Not allowed";
-        return $object;
+function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form)
+{
+    // Get file field ID, model, prompt, and language from the feed settings
+    $model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
+    $file_field_id = rgar($feed['meta'], 'whisper_file_field');
+    $prompt = rgar($feed['meta'], 'whisper_prompt', "A Vietnamese student is preparing for the IELTS speaking test. The speech may include parts 1, 2, or 3 of the exam, featuring a monologue where the student poses questions to themselves and then provides answers. Topics cover various aspects relevant to Vietnam, such as cultural landmarks, traditional foods, and significant historical figures. The student uses Vietnamese-specific terms where appropriate, showcasing cultural knowledge. Importantly, the speech includes intentional grammatical errors a non-native English speaker. The speech also includes natural speech patterns like 'uhm' and 'uh'. Describe a famous destination. Today, I want talking about. Umm, let me think like, hmm... Okay, here's what I'm, like, thinking...");
+    $language = rgar($feed['meta'], 'whisper_language', 'en');
+
+    // Logging the feed settings
+    $GWiz_GF_OpenAI_Object->log_debug("Whisper feed settings: Model: {$model}, File Field ID: {$file_field_id}, Prompt: {$prompt}, Language: {$language}");
+
+    // Get the file URLs from the entry (assuming it returns an array of URLs)
+    $file_urls = rgar($entry, $file_field_id);
+    $GWiz_GF_OpenAI_Object->log_debug("File URLs: " . print_r($file_urls, true));
+
+    $combined_text = ""; // Initialize a string to store all transcriptions
+
+    // Decode JSON string to array if necessary
+    if (is_string($file_urls)) {
+        $file_urls = json_decode($file_urls, true);
+        $GWiz_GF_OpenAI_Object->log_debug("Decoded file URLs: " . print_r($file_urls, true));
     }
+
+    // Proceed only if $file_urls is an array
+    if (is_array($file_urls)) {
+        foreach ($file_urls as $file_url) {
+            $GWiz_GF_OpenAI_Object->log_debug("Processing file URL: {$file_url}");
+            $file_path = $GWiz_GF_OpenAI_Object->convert_url_to_path($file_url);
+            $GWiz_GF_OpenAI_Object->log_debug("Converted file path: {$file_path}");
+
+            if (is_readable($file_path)) {
+                $curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
+                $body = array(
+                    'file' => $curl_file,
+                    'model' => $model,
+                    'prompt' => $prompt,
+                    'language' => $language
+                );
+                $GWiz_GF_OpenAI_Object->log_debug("Request body for Whisper API: " . print_r($body, true));
+
+                GFAPI::add_note(
+                    $entry["id"],
+                    0,
+                    "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
+                    sprintf(
+                        __(
+                            "Sent request to OpenAI audio/transcription endpoint.",
+                            "gravityforms-openai"
+                        )
+                    )
+                );
+
+                $response = $GWiz_GF_OpenAI_Object->make_request('audio/transcriptions', $body, $feed);
+                $GWiz_GF_OpenAI_Object->log_debug("Response from Whisper API: " . print_r($response, true));
+
+
+                if (is_wp_error($response)) {
+                    $GWiz_GF_OpenAI_Object->log_debug("Error from Whisper API: " . $response->get_error_message());
+                    $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+                } else if (rgar($response, 'error')) {
+                    $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
+                    $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
+                } else {
+                    $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+                    $GWiz_GF_OpenAI_Object->log_debug("Transcription text: {$text}");
+                    if (!is_wp_error($text)) {
+                        GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
+                        // Append each transcription to the combined string
+                        $combined_text .= $text . "\n\n";
+
+                        // Stream each response using SSE
+                        echo "data: " . json_encode(['response' => $text]) . "\n\n";
+                        flush(); // Flush data to the browser after each file is transcribed
+                    } else {
+                        $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
+                        $GWiz_GF_OpenAI_Object->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+                    }
+                }
+            } else {
+                $GWiz_GF_OpenAI_Object->log_debug("File not accessible: {$file_path}");
+                $GWiz_GF_OpenAI_Object->add_feed_error("File is not accessible or does not exist: " . $file_path, $feed, $entry, $form);
+            }
+        }
+    } else {
+        $GWiz_GF_OpenAI_Object->log_debug("file_urls is not an array.");
+    }
+
+    // Logging the combined text
+    $GWiz_GF_OpenAI_Object->log_debug("Combined transcription text: {$combined_text}");
+
+    // Update the entry with the combined transcriptions
+    if (!empty($combined_text)) {
+        GFAPI::add_note($entry['id'], 0, 'Whisper API Combined Response', $combined_text);
+        $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
+
+        // Optionally, store the combined text as a meta for the entry
+        gform_add_meta($entry['id'], 'whisper_combined_response', $combined_text);
+    }
+
+    return $entry;
+
 }
 
 function get_user_primary_identifier()
@@ -771,16 +763,11 @@ function event_stream_openai(WP_REST_Request $request)
 
     // Log the received nonce value
     $nonce = $request->get_param('_wpnonce');
-    $GWiz_GF_OpenAI_Object->log_debug("Received nonce: " . $nonce);
 
     // Verify the nonce
     if (!wp_verify_nonce($nonce, 'wp_rest')) {
-        $GWiz_GF_OpenAI_Object->log_debug("Invalid nonce: " . $nonce);
         return new WP_Error('forbidden', 'Invalid nonce', array('status' => 403));
     }
-
-    $GWiz_GF_OpenAI_Object->log_debug("Nonce verified successfully");
-
 
     if (!headers_sent()) {
         @ini_set("zlib.output_compression", 0);
