@@ -105,7 +105,8 @@ function get_band_descriptors($type)
             7 => [
                 'Appropriately addresses the main parts of the prompt.',
                 'Position is clear and developed.',
-                'Ideas extended and supported but may over generalise.'
+                'Ideas extended and supported but may over generalise.',
+                'May lack focus and precision in supporting ideas/material.'
             ],
             6 => [
                 'Addresses the main parts, though some more than others, with appropriate format.',
