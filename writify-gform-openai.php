@@ -112,7 +112,7 @@ function writify_enqueue_scripts_footer()
 
     // Moved repeated code to a single function.
     $get_int_val = function ($key) {
-        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
+        return isset ($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
     };
 
     $form_id = $get_int_val("form_id");
@@ -169,8 +169,8 @@ function writify_enqueue_scripts_footer()
                     // Handling question stream in chunks
                     var questionChunk = jsonResponse.response;
                     if (questionChunk !== undefined) {
-                        responseBuffer += questionChunk;
-                        var html = md.render(responseBuffer);
+                        buffer += questionChunk;
+                        var html = md.render(buffer);
                         var questionDiv = document.querySelector('.essay_prompt .elementor-widget-container');
                         questionDiv.innerHTML = html;
                     }
@@ -178,8 +178,8 @@ function writify_enqueue_scripts_footer()
                     // Handling my-text stream in chunks
                     var responseChunk = jsonResponse.response;
                     if (responseChunk !== undefined) {
-                        responseBuffer += responseChunk;
-                        var html = md.render(responseBuffer);
+                        buffer += responseChunk;
+                        var html = md.render(buffer);
                         var myTextDiv = document.getElementById('my-text');
                         myTextDiv.innerHTML = html;
                     }
@@ -455,6 +455,8 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
 
     $body["stream"] = true;
 
+    $timeout_duration = rgar($feed[0]['meta'], $endpoint . '_' . 'timeout', 120);
+
     // Add retry mechanism
     $max_retries = 20;
     $retry_count = 0;
@@ -485,6 +487,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $post_json);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $header);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout_duration);
 
         $object = new stdClass();
         $object->res = "";
@@ -499,18 +502,18 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                 }
 
                 $pop_js = json_decode($pop_item, true);
-                if (isset($pop_js["choices"])) {
-                    $line = isset($pop_js["choices"][0]["delta"]["content"])
+                if (isset ($pop_js["choices"])) {
+                    $line = isset ($pop_js["choices"][0]["delta"]["content"])
                         ? $pop_js["choices"][0]["delta"]["content"]
                         : "";
-                    if (!empty($line) || $line == "1" || $line == "0") {
+                    if (!empty ($line) || $line == "1" || $line == "0") {
                         $object->res .= $line;
                     }
-                } elseif (isset($pop_js['error'])) {
-                    if (isset($pop_js['error']['message'])) {
+                } elseif (isset ($pop_js['error'])) {
+                    if (isset ($pop_js['error']['message'])) {
                         $object->error = $pop_js['error']['message'];
                     }
-                    if (isset($pop_js['error']['detail'])) {
+                    if (isset ($pop_js['error']['detail'])) {
                         $object->error = $pop_js['error']['detail'];
                     }
                 }
@@ -519,12 +522,12 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                     echo "data: " . $pop_item . PHP_EOL;
                 }
                 if ($stream_to_frontend === 'question') {
-                    if (!empty($line)) {
+                    if (!empty ($line)) {
                         echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
                     }
                 }
                 if ($stream_to_frontend === 'text') {
-                    if (!empty($line)) { // Only send non-empty lines
+                    if (!empty ($line)) { // Only send non-empty lines
                         echo "data: " . json_encode(['response' => $line]) . "\n\n";
                     }
                     flush(); // Ensure the data is sent to the client immediately
@@ -538,7 +541,8 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
         // Check and Log cURL Errors
-        if (curl_errno($ch)) {
+        $curl_errno = curl_errno($ch);
+        if ($curl_errno) {
             $error_msg = curl_error($ch);
             $GWiz_GF_OpenAI_Object->log_debug("cURL Error: " . $error_msg);
         }
@@ -568,7 +572,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
             }
 
         } else {
-            if ($http_status !== 200 || !empty($object->error)) {
+            if ($http_status !== 200 || !empty($object->error) || $curl_errno === CURLE_OPERATION_TIMEDOUT) {
                 $retry_count++;
                 if ($retry_count <= $max_retries) {
                     $retry = true;
