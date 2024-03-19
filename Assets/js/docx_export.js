@@ -307,6 +307,7 @@ async function exportDocument() {
 
     // Extract headers from the document
     let arH = document.getElementsByClassName("ar_header")[0]?.innerText;
+    let gramH = document.getElementsByClassName("gram_header")[0]?.innerText;
     let tH = document.getElementsByClassName("tr_header")[0]?.innerText;
     let ccH = document.getElementsByClassName("cc_header")[0]?.innerText;
     let lrH = document.getElementsByClassName("lr_header")[0]?.innerText;
@@ -321,6 +322,10 @@ async function exportDocument() {
     if (arH) {
         sectionsChildren.push(createHeaderParagraph(arH));
         sectionsChildren.push(...createNormalSections("ar_response"));
+    }
+    if (gramH) {
+        sectionsChildren.push(createHeaderParagraph(gramH));
+        sectionsChildren.push(...createNormalSections("gram_response"));
     }
     if (tH) {
         sectionsChildren.push(createHeaderParagraph(tH));
