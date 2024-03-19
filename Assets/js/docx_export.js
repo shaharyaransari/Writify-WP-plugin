@@ -1,6 +1,6 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.1
+ * Version: 1.0.2
  * Last Updated: 07-12-2023
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
