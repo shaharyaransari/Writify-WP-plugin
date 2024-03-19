@@ -25,7 +25,7 @@ $myUpdateChecker = PucFactory::buildUpdateChecker(
 $myUpdateChecker->setBranch('main');
 
 //Optional: If you're using a private repository, specify the access token like this:
-$myUpdateChecker->setAuthentication('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');
+$myUpdateChecker->setAuthentication('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');
 
 // Check if Gravity Forms is active
 if (class_exists('GFForms')) {
