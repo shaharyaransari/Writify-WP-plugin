@@ -1,6 +1,6 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.2
+ * Version: 1.0.5
  * Last Updated: 07-12-2023
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
@@ -55,9 +55,9 @@ function createSectionsWithComments(rawComments) {
     const essayPrompt = document
         .querySelector(".essay_prompt .elementor-widget-container")
         .innerText.trim();
-    const essayParagraphs = essayText.split(/\\r?\\n/).map((p) => p.trimStart());
+    const essayParagraphs = essayText.split(/[\r\n]+/).map((p) => p.trimStart());
     const essayPromptParagraphs = essayPrompt
-        .split(/\\r?\\n/)
+        .split(/[\r\n]+/)
         .map((p) => p.trimStart());
     const outputParagraphs = [];
 
