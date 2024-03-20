@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.1.8
+ * Version:           1.1.9
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -25,7 +25,7 @@ $myUpdateChecker = PucFactory::buildUpdateChecker(
 $myUpdateChecker->setBranch('main');
 
 //Optional: If you're using a private repository, specify the access token like this:
-$myUpdateChecker->setAuthentication('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');
+//$myUpdateChecker->setAuthentication('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');
 
 // Check if Gravity Forms is active
 if (class_exists('GFForms')) {
@@ -213,7 +213,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.0', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.2', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
