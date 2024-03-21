@@ -59,13 +59,24 @@ add_filter("gform_gravityforms-openai_pre_process_feeds", '__return_empty_string
  */
 function writify_get_feeds($form_id = null)
 {
-    // Define the add-on slug you are working with.
-    $addon_slug = 'gravityforms-openai';
+    global $wpdb;
 
-    // If form_id is null, it returns all feeds for the addon.
-    $feeds = GFAPI::get_feeds(null, $form_id, $addon_slug);
+    $form_filter = is_numeric($form_id)
+        ? $wpdb->prepare("AND form_id=%d", absint($form_id))
+        : "";
 
-    return $feeds;
+    $sql = $wpdb->prepare(
+        "SELECT * FROM {$wpdb->prefix}gf_addon_feed
+        WHERE addon_slug=%s {$form_filter} ORDER BY `feed_order`, `id` ASC",
+        "gravityforms-openai"
+    );
+
+    $results = $wpdb->get_results($sql, ARRAY_A);
+    foreach ($results as &$result) {
+        $result["meta"] = json_decode($result["meta"], true);
+    }
+
+    return $results;
 }
 
 /**
