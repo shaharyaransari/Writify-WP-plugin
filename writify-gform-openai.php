@@ -349,14 +349,15 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     // Log API base for debugging
     $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
 
-    // Get the model from the feed settings
+    // Get the model and message from the feed settings
     if (strpos($api_base, 'predibase') !== false) {
         $model = $feed["meta"]['chat_completions_lora_adapter'];
+        $message = $feed["meta"]["chat_completions_lorax_message"];
     } else {
         // Get the model from feed metadata based on user's role or membership
         $model = $feed["meta"]["chat_completion_model_$primary_identifier"];
+        $message = $feed["meta"]["chat_completions_message"];
     }
-    $message = $feed["meta"]["chat_completions_message"];
     // Retrieve the field ID for the image link and then get the URL from the entry
     $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
     $image_link_json = rgar($entry, $image_link_field_id);
