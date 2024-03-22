@@ -187,7 +187,10 @@ function writify_enqueue_scripts_footer()
             }
             else {
                 // Add the message to the buffer
-                text = JSON.parse(event.data).choices[0].delta.content;
+                var choices = JSON.parse(event.data).choices;
+                if (choices[0].delta.content !== null) {
+                    text = choices[0].delta.content;
+                }
                 if (text !== undefined) {
                     buffer += text;
                     // Convert the buffer to HTML and display it
@@ -341,15 +344,18 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     $GWiz_GF_OpenAI_Object->log_debug("Primary identifier (role or membership): " . $primary_identifier);
 
     // Get the saved API base for the user role or membership from the feed settings
-    $option_name = 'api_base_' . $primary_identifier;
-    $api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+    $api_base = rgar($feed['meta'], "api_base_$primary_identifier", 'https://api.openai.com/v1/');
 
     // Log API base for debugging
     $GWiz_GF_OpenAI_Object->log_debug("API Base: " . $api_base);
-    $model_option_name = 'chat_completion_model_' . $primary_identifier;
 
-    // Get the model from feed metadata based on user's role or membership
-    $model = rgar($feed["meta"], $model_option_name, 'gpt-3.5-turbo');
+    // Get the model from the feed settings
+    if (strpos($api_base, 'predibase') !== false) {
+        $model = $feed["meta"]['chat_completions_lora_adapter'];
+    } else {
+        // Get the model from feed metadata based on user's role or membership
+        $model = $feed["meta"]["chat_completion_model_$primary_identifier"];
+    }
     $message = $feed["meta"]["chat_completions_message"];
     // Retrieve the field ID for the image link and then get the URL from the entry
     $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
@@ -465,7 +471,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         $retry = false;
 
         // Regenerate headers before each retry
-        $headers = $GWiz_GF_OpenAI_Object->get_headers();
+        $headers = $GWiz_GF_OpenAI_Object->get_headers($feed);
 
         // Set the new headers
         $header = [
@@ -474,7 +480,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
             "api-key: " . $headers["api-key"]
         ];
 
-        if (isset($headers['OpenAI-Organization'])) {
+        if (isset ($headers['OpenAI-Organization'])) {
             $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
         }
 
@@ -494,9 +500,13 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         $object->error = "";
 
         curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend) {
-            $pop_arr = explode("data: ", $data);
+            $pop_arr = explode("data:", $data);
 
             foreach ($pop_arr as $pop_item) {
+                $pop_item = trim($pop_item);
+                if (empty($pop_item)) {
+                    continue; // Skip this iteration if $pop_item is empty.
+                }
                 if (trim($pop_item) === '[DONE]') {
                     continue; // Skip this iteration and don't process or echo the [DONE] segment.
                 }
@@ -519,11 +529,13 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                 }
 
                 if ($stream_to_frontend === 'yes') {
-                    echo "data: " . $pop_item . PHP_EOL;
+                    echo "data: " . $pop_item . "\n\n";
+                    flush();
                 }
                 if ($stream_to_frontend === 'question') {
                     if (!empty ($line)) {
                         echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
+                        flush();
                     }
                 }
                 if ($stream_to_frontend === 'text') {
