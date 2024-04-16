@@ -65,11 +65,7 @@ function writify_get_feeds($form_id = null)
         ? $wpdb->prepare("AND form_id=%d", absint($form_id))
         : "";
 
-    $sql = $wpdb->prepare(
-        "SELECT * FROM {$wpdb->prefix}gf_addon_feed
-        WHERE addon_slug=%s {$form_filter} ORDER BY `feed_order`, `id` ASC",
-        "gravityforms-openai"
-    );
+    $sql = $wpdb->prepare("SELECT * FROM {$wpdb->prefix}gf_addon_feed WHERE addon_slug=%s {$form_filter} ORDER BY `feed_order`, `id` ASC", "gravityforms-openai");
 
     $results = $wpdb->get_results($sql, ARRAY_A);
     foreach ($results as &$result) {
@@ -481,11 +477,12 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
             "api-key: " . $headers["api-key"]
         ];
 
-        if (isset ($headers['OpenAI-Organization'])) {
+        if (isset($headers['OpenAI-Organization'])) {
             $header[] = "OpenAI-Organization: " . $headers['OpenAI-Organization'];
         }
 
         $post_json = json_encode($body);
+        $GWiz_GF_OpenAI_Object->log_debug("Post JSON: " . $post_json);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -505,7 +502,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
 
             foreach ($pop_arr as $pop_item) {
                 $pop_item = trim($pop_item);
-                if (empty($pop_item)) {
+                if (empty ($pop_item)) {
                     continue; // Skip this iteration if $pop_item is empty.
                 }
                 if (trim($pop_item) === '[DONE]') {
@@ -517,6 +514,9 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                     $line = isset ($pop_js["choices"][0]["delta"]["content"])
                         ? $pop_js["choices"][0]["delta"]["content"]
                         : "";
+                    if ($line == "<s>") {
+                        continue; // Skip this iteration if $line is equal to "<s>".
+                    }
                     if (!empty ($line) || $line == "1" || $line == "0") {
                         $object->res .= $line;
                     }
@@ -848,7 +848,7 @@ function event_stream_openai(WP_REST_Request $request)
                 : "";
             $field_id = isset(
                 $feed["meta"][$end_point . "_map_result_to_field"]
-                )
+            )
                 ? $feed["meta"][$end_point . "_map_result_to_field"]
                 : 0;
 
