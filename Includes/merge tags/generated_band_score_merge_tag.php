@@ -65,15 +65,27 @@ function parse_field_value($field_value)
         if ($startPos !== false && $endPos !== false && $endPos > $startPos) {
             // Extract text within quotes
             $extractedText = substr($line, $startPos + 1, $endPos - $startPos - 1);
+            // Check if the last character is not a period, append one if necessary
+            if (substr($extractedText, -1) !== '.') {
+                $extractedText .= '.';
+            }
         } else {
             // Find the position of the colon
             $colonPos = strpos($line, ':');
             if ($colonPos !== false) {
                 // Extract the text after the colon until the end of the line
                 $extractedText = trim(substr($line, $colonPos + 1));
+                // Check if the last character is not a period, append one if necessary
+                if (substr($extractedText, -1) !== '.') {
+                    $extractedText .= '.';
+                }
             } else {
                 // If no colon or quotes, add the entire line
                 $extractedText = trim($line);
+                // Check if the last character is not a period, append one if necessary
+                if (substr($extractedText, -1) !== '.') {
+                    $extractedText .= '.';
+                }
             }
         }
 
