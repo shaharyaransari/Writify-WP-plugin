@@ -223,7 +223,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.5', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.6', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
@@ -878,9 +878,11 @@ function event_stream_openai(WP_REST_Request $request)
                         );
                     }
                 }
-                if ($stream_to_frontend === 'yes') {
+                if ($stream_to_frontend === 'yes' | $stream_to_frontend === 'question' | $stream_to_frontend === 'text') {
                     $send_data("[DONE]");
-                    $send_data("[DIVINDEX-" . $feed_index . "]");
+                    if ($stream_to_frontend === 'yes') {
+                        $send_data("[DIVINDEX-" . $feed_index . "]");
+                    }
                 }
             } else {
                 // All requirements are met; process feed.
@@ -898,9 +900,11 @@ function event_stream_openai(WP_REST_Request $request)
                 } else {
                     //skip
                 }
-                if ($stream_to_frontend === 'yes') {
+                if ($stream_to_frontend === 'yes' | $stream_to_frontend === 'question' | $stream_to_frontend === 'text') {
                     $send_data("[DONE]");
-                    $send_data("[DIVINDEX-" . $feed_index . "]");
+                    if ($stream_to_frontend === 'yes') {
+                        $send_data("[DIVINDEX-" . $feed_index . "]");
+                    }
                 }
                 $feeds_processed = true; // Set flag to true if a feed is processed
             }
