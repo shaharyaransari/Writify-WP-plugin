@@ -349,6 +349,10 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     if (strpos($api_base, 'predibase') !== false) {
         $model = $feed["meta"]['chat_completions_lora_adapter'];
         $message = $feed["meta"]["chat_completions_lorax_message"];
+    } elseif (strpos($api_base, 'runpod') !== false) {
+        $model = $feed["meta"]['chat_completions_lora_adapter_HF'];
+        $message = $feed["meta"]["chat_completions_lorax_message"];
+        $pod_id = $feed["meta"]["runpod_pod_id"];
     } else {
         // Get the model from feed metadata based on user's role or membership
         $model = $feed["meta"]["chat_completion_model_$primary_identifier"];
@@ -419,6 +423,10 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
         $url .= '?api-version=2023-03-15-preview';
     }
+    if (strpos($api_base, 'runpod') !== false) {
+        //Replace `ROD_ID` with the actual pod ID
+        $url = str_replace('POD_ID', $pod_id, $url);
+    }
 
     $body["max_tokens"] = (float) rgar(
         $feed["meta"],
@@ -483,6 +491,8 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
 
         $post_json = json_encode($body);
         $GWiz_GF_OpenAI_Object->log_debug("Post JSON: " . $post_json);
+        $GWiz_GF_OpenAI_Object->log_debug("URL: " . $url);
+        $GWiz_GF_OpenAI_Object->log_debug("Header: " . json_encode($header));
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -552,6 +562,8 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
 
         curl_exec($ch);
         $http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        //Log http status code
+        $GWiz_GF_OpenAI_Object->log_debug("HTTP Status Code: " . $http_status);
 
         // Check and Log cURL Errors
         $curl_errno = curl_errno($ch);
