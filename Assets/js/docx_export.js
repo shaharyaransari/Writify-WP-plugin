@@ -1,7 +1,7 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.5
- * Last Updated: 07-12-2023
+ * Version: 1.0.7
+ * Last Updated: 16-5-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
  */
@@ -61,10 +61,14 @@ function createSectionsWithComments(rawComments) {
         .map((p) => p.trimStart());
     const outputParagraphs = [];
 
+    // Filter out faulty comments before processing
+    const validComments = rawComments.filter(comment => 
+        essayText.toLowerCase().includes(comment.originalVocab.toLowerCase())
+    );
+
     // Add the essay prompt paragraphs to the output
     for (let promptParagraph of essayPromptParagraphs) {
         if (promptParagraph.trim()) {
-            // Check if paragraph is not just whitespace
             outputParagraphs.push(
                 new docx.Paragraph({
                     children: [
@@ -78,53 +82,43 @@ function createSectionsWithComments(rawComments) {
         }
     }
 
+    let globalCommentIndex = 0; // Initialize global comment index for valid comments
+
     for (let paraText of essayParagraphs) {
         if (paraText.trim()) {
-            // Check if paragraph is not just whitespace
             let currentPosition = 0;
             const paraChildren = [];
-            let localCommentIndex = 0; // Reset for each paragraph
 
-            while (localCommentIndex < rawComments.length) {
+            while (globalCommentIndex < validComments.length) {
                 const commentStartPos = paraText
                     .toLowerCase()
                     .indexOf(
-                        rawComments[localCommentIndex].originalVocab.toLowerCase(),
+                        validComments[globalCommentIndex].originalVocab.toLowerCase(),
                         currentPosition
                     );
 
                 if (commentStartPos !== -1) {
                     // Add text before the comment
-                    const preCommentText = paraText.slice(
-                        currentPosition,
-                        commentStartPos
-                    );
+                    const preCommentText = paraText.slice(currentPosition, commentStartPos);
                     paraChildren.push(new docx.TextRun(preCommentText));
 
                     // Add the comment
-                    paraChildren.push(new docx.CommentRangeStart(localCommentIndex));
+                    paraChildren.push(new docx.CommentRangeStart(globalCommentIndex));
                     paraChildren.push(
-                        new docx.TextRun(rawComments[localCommentIndex].originalVocab)
+                        new docx.TextRun(validComments[globalCommentIndex].originalVocab)
                     );
-                    paraChildren.push(new docx.CommentRangeEnd(localCommentIndex));
+                    paraChildren.push(new docx.CommentRangeEnd(globalCommentIndex));
                     paraChildren.push(
                         new docx.TextRun({
-                            children: [new docx.CommentReference(localCommentIndex)]
+                            children: [new docx.CommentReference(globalCommentIndex)]
                         })
                     );
 
-                    currentPosition =
-                        commentStartPos +
-                        rawComments[localCommentIndex].originalVocab.length;
-
-                    localCommentIndex++;
+                    currentPosition = commentStartPos + validComments[globalCommentIndex].originalVocab.length;
+                    globalCommentIndex++; // Move to next comment
                 } else {
-                    console.warn(
-                        `Skipped raw comment at index ${localCommentIndex} because it was not found in the essay text.`
-                    );
-                    // If no comment is found in the current paragraph, move on to the next comment
-                    localCommentIndex++;
-                    continue;
+                    // Break out of the loop if the current comment is not found in this paragraph
+                    break;
                 }
             }
 
