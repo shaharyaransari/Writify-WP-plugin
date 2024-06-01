@@ -7,23 +7,37 @@ function add_generated_band_score_merge_tags($merge_tags, $form_id, $fields, $el
     foreach ($criteria as $criterion) {
         $merge_tags[] = array(
             'label' => "Generated $criterion Band Score (Multiple Fields)",
-            'tag' => "{generated_{$criterion}_band_score_[field_ids]}"
+            'tag' => "{generated_{$criterion}_band_score_[field_ids]_essay_[essay_field_id]}"
         );
     }
 
     return $merge_tags;
 }
 add_filter('gform_replace_merge_tags', 'replace_generated_band_score_merge_tags', 10, 7);
+/**
+ * Replaces generated band score merge tags in the given text with the corresponding band scores.
+ *
+ * @param string $text The text containing the merge tags.
+ * @param array $form The form data.
+ * @param array $entry The entry data.
+ * @param bool $url_encode Whether to URL encode the replaced values.
+ * @param bool $esc_html Whether to escape HTML characters in the replaced values.
+ * @param bool $nl2br Whether to convert newlines to HTML line breaks in the replaced values.
+ * @param string $format The format of the replaced values.
+ * @return string The text with the generated band score merge tags replaced.
+ */
 function replace_generated_band_score_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 {
     $criteria = ['TR', 'CC', 'LR', 'GRA', 'TA'];
 
     foreach ($criteria as $criterion) {
-        $custom_tag = "/{generated_{$criterion}_band_score_(.+?)}/";
+        $custom_tag = "/{generated_{$criterion}_band_score_([0-9_]+)_essay_(\d+)}/";
         preg_match_all($custom_tag, $text, $matches, PREG_SET_ORDER);
 
         foreach ($matches as $match) {
             $field_ids = explode('_', $match[1]);
+            $essay_field_id = $match[2];
+            $word_count = str_word_count($entry[$essay_field_id], 0, '0123456789');
             $allFieldValues = [];
 
             foreach ($field_ids as $field_id) {
@@ -33,7 +47,7 @@ function replace_generated_band_score_merge_tags($text, $form, $entry, $url_enco
             }
             error_log("Merged Field Values: " . print_r($allFieldValues, true));
 
-            $band_score = get_lowest_band_score($allFieldValues, $criterion);
+            $band_score = get_lowest_band_score($allFieldValues, $criterion, $word_count);
             $text = str_replace($match[0], $band_score, $text);
         }
     }
@@ -293,7 +307,7 @@ function get_band_descriptors($type)
     return $descriptors[$type] ?? [];
 }
 
-function get_lowest_band_score($parsedData, $type)
+function get_lowest_band_score($parsedData, $type, $word_count)
 {
     $bandDescriptors = get_band_descriptors($type);
 
@@ -316,6 +330,11 @@ function get_lowest_band_score($parsedData, $type)
                 break; // Stop checking once a match is found for this bullet point
             }
         }
+    }
+
+    // if the criteria is TR, check if the word count is less than 250, then set the max score to 5
+    if ($type === 'TR' && $word_count < 250) {
+        $lowestBand = min($lowestBand, 5);
     }
 
     return $lowestBand;
