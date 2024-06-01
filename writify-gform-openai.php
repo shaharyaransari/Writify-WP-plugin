@@ -428,13 +428,19 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         $url = str_replace('POD_ID', $pod_id, $url);
     }
 
-    $body["max_tokens"] = (float) rgar(
-        $feed["meta"],
-        $endpoint . "_" . "max_tokens",
-        $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
-            "max_tokens"
-        ]
-    );
+
+    if (strpos($api_base, 'predibase') !== false && $primary_identifier == 'No_membership') {
+        $body["max_tokens"] = 1000;
+    } else {
+        $body["max_tokens"] = (float) rgar(
+            $feed["meta"],
+            $endpoint . "_" . "max_tokens",
+            $GWiz_GF_OpenAI_Object->default_settings["chat/completions"][
+                "max_tokens"
+            ]
+        );
+    }
+
     $body["temperature"] = (float) rgar(
         $feed["meta"],
         $endpoint . "_" . "temperature",
