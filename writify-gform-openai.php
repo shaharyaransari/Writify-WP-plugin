@@ -349,7 +349,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     if (strpos($api_base, 'predibase') !== false) {
         $model = $feed["meta"]['chat_completions_lora_adapter'];
         $message = $feed["meta"]["chat_completions_lorax_message"];
-    } elseif (strpos($api_base, 'runpod') !== false) {
+    } elseif (strpos($api_base, 'runpod') !== false || strpos($api_base, 'api3') !== false) {
         $model = $feed["meta"]['chat_completions_lora_adapter_HF'];
         $message = $feed["meta"]["chat_completions_lorax_message"];
         $pod_id = $feed["meta"]["runpod_pod_id"];
@@ -429,7 +429,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     }
 
 
-    if (strpos($api_base, 'predibase') !== false && $primary_identifier == 'No_membership') {
+    if ((strpos($api_base, 'predibase') !== false || strpos($api_base, 'api3') !== false) && $primary_identifier == 'No_membership') {
         $body["max_tokens"] = 1000;
     } else {
         $body["max_tokens"] = (float) rgar(
