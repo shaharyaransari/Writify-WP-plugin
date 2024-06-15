@@ -108,7 +108,7 @@ function writify_enqueue_scripts_footer()
 
     // Moved repeated code to a single function.
     $get_int_val = function ($key) {
-        return isset ($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
+        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
     };
 
     $form_id = $get_int_val("form_id");
@@ -333,7 +333,6 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
 
 function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, $form, $stream_to_frontend, $endpoint)
 {
-
     // Identify the user role or membership title from the API request
     $primary_identifier = get_user_primary_identifier();
     // Log primary role or membership title for debugging
@@ -363,8 +362,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     $image_link_json = rgar($entry, $image_link_field_id);
 
     // Decode the JSON string to extract the URL
-    $image_link_array = json_decode($image_link_json, true);
-    $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
+    $image_links = json_decode($image_link_json, true);
     // Parse the merge tags in the message.
     $message = GFCommon::replace_variables($message, $form, $entry, false, false, false, "text");
 
@@ -395,16 +393,18 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         )
     );
 
-    // Check if the model is GPT-4 Vision and if the image link is not empty
-    if (strpos($model, 'vision') !== false && !empty($image_link)) {
-        // Construct content with text and image URL
-        $content = array(
-            array('type' => 'text', 'text' => $message),
-            array('type' => 'image_url', 'image_url' => array('url' => $image_link))
-        );
-    } else {
-        // Construct content with only text
-        $content = $message;
+    // Initialize content with only text
+    $content = $message;
+
+    // Check if the model is GPT-4 Vision and if there are any image links
+    if (strpos($model, 'vision') !== false && !empty($image_links)) {
+        // Prepare content with the text and all valid image URLs
+        $content = array(array('type' => 'text', 'text' => $message));
+        foreach ($image_links as $image_link) {
+            if (!empty($image_link)) {
+                $content[] = array('type' => 'image_url', 'image_url' => array('url' => $image_link));
+            }
+        }
     }
 
     // Create the request body
@@ -518,7 +518,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
 
             foreach ($pop_arr as $pop_item) {
                 $pop_item = trim($pop_item);
-                if (empty ($pop_item)) {
+                if (empty($pop_item)) {
                     continue; // Skip this iteration if $pop_item is empty.
                 }
                 if (trim($pop_item) === '[DONE]') {
@@ -526,21 +526,21 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                 }
 
                 $pop_js = json_decode($pop_item, true);
-                if (isset ($pop_js["choices"])) {
-                    $line = isset ($pop_js["choices"][0]["delta"]["content"])
+                if (isset($pop_js["choices"])) {
+                    $line = isset($pop_js["choices"][0]["delta"]["content"])
                         ? $pop_js["choices"][0]["delta"]["content"]
                         : "";
                     if ($line == "<s>") {
                         continue; // Skip this iteration if $line is equal to "<s>".
                     }
-                    if (!empty ($line) || $line == "1" || $line == "0") {
+                    if (!empty($line) || $line == "1" || $line == "0") {
                         $object->res .= $line;
                     }
-                } elseif (isset ($pop_js['error'])) {
-                    if (isset ($pop_js['error']['message'])) {
+                } elseif (isset($pop_js['error'])) {
+                    if (isset($pop_js['error']['message'])) {
                         $object->error = $pop_js['error']['message'];
                     }
-                    if (isset ($pop_js['error']['detail'])) {
+                    if (isset($pop_js['error']['detail'])) {
                         $object->error = $pop_js['error']['detail'];
                     }
                 }
@@ -550,13 +550,13 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                     flush();
                 }
                 if ($stream_to_frontend === 'question') {
-                    if (!empty ($line)) {
+                    if (!empty($line)) {
                         echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
                         flush();
                     }
                 }
                 if ($stream_to_frontend === 'text') {
-                    if (!empty ($line)) { // Only send non-empty lines
+                    if (!empty($line)) { // Only send non-empty lines
                         echo "data: " . json_encode(['response' => $line]) . "\n\n";
                     }
                     flush(); // Ensure the data is sent to the client immediately
