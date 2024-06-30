@@ -396,8 +396,8 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     // Initialize content with only text
     $content = $message;
 
-    // Check if the model is GPT-4 Vision and if there are any image links
-    if (strpos($model, 'vision') !== false && !empty($image_links)) {
+    // Check if the model is Vision
+    if (strpos($model, 'vision') !== false) {
         // Prepare content with the text and all valid image URLs
         $content = array(array('type' => 'text', 'text' => $message));
         foreach ($image_links as $image_link) {
