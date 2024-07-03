@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.3
+ * Version:           1.2.4
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -429,7 +429,7 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     }
 
 
-    if ((strpos($api_base, 'predibase') !== false || strpos($api_base, 'api3') !== false) && $primary_identifier == 'No_membership') {
+    if ((strpos($api_base, 'predibase') !== false || strpos($api_base, 'api3') !== false) && ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber')) {
         $body["max_tokens"] = 1000;
     } else {
         $body["max_tokens"] = (float) rgar(
