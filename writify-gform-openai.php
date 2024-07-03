@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.2
+ * Version:           1.2.3
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -236,7 +236,7 @@ function writify_enqueue_scripts()
             // Modify the user's name if they are a subscriber or have no membership
             $firstName = $current_user->user_firstname;
             $lastName = $current_user->user_lastname;
-            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus') {
+            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus' || $primary_identifier == 'plus_subscriber') {
                 $lastName .= " from IELTS Science"; // Add "from IELTS Science" to the last name
             }
 
@@ -278,7 +278,7 @@ function writify_enqueue_scripts()
             // Modify the user's name if they are a subscriber or have no membership
             $firstName = $current_user->user_firstname;
             $lastName = $current_user->user_lastname;
-            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus') {
+            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus' || $primary_identifier == 'plus_subscriber') {
                 $lastName .= " from IELTS Science"; // Add "IELTS Science" to the last name
             }
 
