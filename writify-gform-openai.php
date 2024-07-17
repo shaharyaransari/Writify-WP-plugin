@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.4
+ * Version:           1.2.5
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
