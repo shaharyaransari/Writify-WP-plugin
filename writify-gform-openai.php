@@ -513,9 +513,20 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
         $object->res = "";
         $object->error = "";
 
-        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend) {
-            $pop_arr = explode("data:", $data);
-
+        $buffer = '';
+        
+        curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($ch, $data) use ($object, $stream_to_frontend, $GWiz_GF_OpenAI_Object, &$buffer) {
+            $GWiz_GF_OpenAI_Object->log_debug("Raw data received: " . $data);
+        
+            // Append new data to the buffer
+            $buffer .= $data;
+        
+            // Split the buffer into parts based on "data:"
+            $pop_arr = explode("data:", $buffer);
+        
+            // Clear the buffer
+            $buffer = '';
+        
             foreach ($pop_arr as $pop_item) {
                 $pop_item = trim($pop_item);
                 if (empty($pop_item)) {
@@ -524,8 +535,17 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                 if (trim($pop_item) === '[DONE]') {
                     continue; // Skip this iteration and don't process or echo the [DONE] segment.
                 }
-
+        
+                // Try to decode the JSON
                 $pop_js = json_decode($pop_item, true);
+        
+                // If decoding fails, it means we have an incomplete JSON object
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    // Append the incomplete item back to the buffer
+                    $buffer .= "data: " . $pop_item;
+                    continue;
+                }
+        
                 if (isset($pop_js["choices"])) {
                     $line = isset($pop_js["choices"][0]["delta"]["content"])
                         ? $pop_js["choices"][0]["delta"]["content"]
@@ -544,7 +564,10 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                         $object->error = $pop_js['error']['detail'];
                     }
                 }
-
+        
+                // Log the processed item
+                $GWiz_GF_OpenAI_Object->log_debug("Processed item: " . json_encode($pop_js));
+        
                 if ($stream_to_frontend === 'yes') {
                     echo "data: " . $pop_item . "\n\n";
                     flush();
@@ -945,6 +968,8 @@ function event_stream_openai(WP_REST_Request $request)
     $send_data("[ALLDONE]");
     die();
 }
+
+
 
 /**
  * Updates a post using the Advanced Post Creation add-on after a Gravity Forms entry is finished processing by Open AI.
