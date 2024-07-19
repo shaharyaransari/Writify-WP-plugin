@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.5
+ * Version:           1.2.6
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -223,7 +223,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.7', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.8', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
@@ -251,9 +251,6 @@ function writify_enqueue_scripts()
 
             // Enqueue Remarkable Markdown Parser
             wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
-
-            // Enqueue Grammarly Editor SDK
-            wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
 
             // Enqueue the text interaction handler script
             wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);

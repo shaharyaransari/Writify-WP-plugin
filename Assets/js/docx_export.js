@@ -1,6 +1,6 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.7
+ * Version: 1.0.8
  * Last Updated: 16-5-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
@@ -8,20 +8,28 @@
 function extractRawCommentsFromHTML() {
     const vocabElements = document.querySelectorAll(".upgrade_vocab");
     const rawComments = [];
+    const essayText = document.querySelector("#my-text").innerText.toLowerCase();
 
     vocabElements.forEach((element) => {
         const originalVocab = element.querySelector(".original-vocab").innerText;
         const improvedVocab = element.querySelector(".improved-vocab").innerText;
         const explanation = element.querySelector(".explanation").innerText;
 
+        // Find the position of the original vocabulary in the essay text
+        const position = essayText.indexOf(originalVocab.toLowerCase());
+
         const commentData = {
             originalVocab: originalVocab,
             improvedVocab: improvedVocab,
-            explanation: explanation
+            explanation: explanation,
+            position: position // Store the position
         };
 
         rawComments.push(commentData);
     });
+
+    // Sort comments based on their position
+    rawComments.sort((a, b) => a.position - b.position);
 
     return rawComments;
 }
