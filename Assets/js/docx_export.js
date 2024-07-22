@@ -1,7 +1,7 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.9
- * Last Updated: 16-5-2024
+ * Version: 1.1.1
+ * Last Updated: 23-7-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
  */
@@ -28,10 +28,26 @@ function extractRawCommentsFromHTML() {
         rawComments.push(commentData);
     });
 
-    // Sort comments based on their position
-    rawComments.sort((a, b) => a.position - b.position);
+    // Filter out faulty comments before processing
+    const validComments = rawComments.filter(comment => 
+        essayText.includes(comment.originalVocab.toLowerCase())
+    );
 
-    return rawComments;
+    // Ensure each original vocab appears only once in the best fitting position
+    const uniqueComments = [];
+    const seenVocab = new Set();
+
+    validComments.forEach(comment => {
+        if (!seenVocab.has(comment.originalVocab.toLowerCase())) {
+            uniqueComments.push(comment);
+            seenVocab.add(comment.originalVocab.toLowerCase());
+        }
+    });
+
+    // Sort comments based on their position
+    uniqueComments.sort((a, b) => a.position - b.position);
+
+    return uniqueComments;
 }
 
 function convertRawCommentsToDocxFormat(rawComments) {
@@ -142,9 +158,7 @@ function createSectionsWithComments(rawComments) {
 }
 
 function createNormalSections(className) {
-    const element = document.querySelector(
-        `.${className}`
-    );
+    const element = document.querySelector(`.${className}`);
     if (!element) {
         console.warn(`No element found with class name: ${className}`);
         return [];

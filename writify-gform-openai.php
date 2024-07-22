@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.8
+ * Version:           1.2.9
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -223,7 +223,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.9', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.1', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
