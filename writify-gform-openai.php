@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.6
+ * Version:           1.2.7
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -147,7 +147,7 @@ function writify_enqueue_scripts_footer()
                 // When a message is done, convert the buffer to HTML and display it
                 var html = md.render(buffer);
                 jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                var current_div = jQuery('.response-div-' + div_index).find('.e-con-full');
                 current_div.html(html); // Replace the current HTML content with the processed markdown
 
                 jQuery.when(current_div.html(html)).then(function () {
@@ -223,7 +223,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.8', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.0.9', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
@@ -262,7 +262,7 @@ function writify_enqueue_scripts()
         // Enqueue the script only if the slug starts with 'speaking-result'
         if (substr($slug, 0, 15) === 'speaking-result') {
             // Enqueue necessary scripts
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.1', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.2', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script

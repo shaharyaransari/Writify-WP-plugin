@@ -1,6 +1,6 @@
 /**
  * Script Name: Docx Export
- * Version: 1.0.8
+ * Version: 1.0.9
  * Last Updated: 16-5-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
@@ -143,7 +143,7 @@ function createSectionsWithComments(rawComments) {
 
 function createNormalSections(className) {
     const element = document.querySelector(
-        `.${className} .elementor-widget-container .elementor-shortcode`
+        `.${className}`
     );
     if (!element) {
         console.warn(`No element found with class name: ${className}`);

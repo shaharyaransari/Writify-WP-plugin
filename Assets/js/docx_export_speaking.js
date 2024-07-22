@@ -1,6 +1,6 @@
 /**
  * Script Name: Docx Export for Speaking
- * Version: 1.0.1
+ * Version: 1.0.2
  * Last Updated: 16-05-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
@@ -114,7 +114,7 @@ function createSectionsWithComments(rawComments) {
 
 function createNormalSections(className) {
     const element = document.querySelector(
-        `.${className} .elementor-widget-container .elementor-shortcode`
+        `.${className}`
     );
     if (!element) {
         console.warn(`No element found with class name: ${className}`);
