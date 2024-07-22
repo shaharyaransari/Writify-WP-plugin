@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Writify
  * Description:       Score IELTS Essays x GPT
- * Version:           1.2.7
+ * Version:           1.2.8
  * Author:            IELTS Science
  * Copyright:         © 2023-2026 RLT
  */
@@ -147,7 +147,7 @@ function writify_enqueue_scripts_footer()
                 // When a message is done, convert the buffer to HTML and display it
                 var html = md.render(buffer);
                 jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                var current_div = jQuery('.response-div-' + div_index).find('.e-con-full');
+                var current_div = jQuery('.response-div-' + div_index).find('.e-con');
                 current_div.html(html); // Replace the current HTML content with the processed markdown
 
                 jQuery.when(current_div.html(html)).then(function () {
@@ -192,7 +192,7 @@ function writify_enqueue_scripts_footer()
                     // Convert the buffer to HTML and display it
                     var html = md.render(buffer);
                     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
-                    var current_div = jQuery('.response-div-' + div_index).find('.elementor-shortcode');
+                    var current_div = jQuery('.response-div-' + div_index).find('.e-con');
                     current_div.html(html); // Replace the current HTML content with the processed markdown
                 }
             }
