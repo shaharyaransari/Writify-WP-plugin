@@ -102,6 +102,8 @@ function writify_enqueue_scripts_footer()
     $slug = $post->post_name;
 
     // Check if the page slug begins with "result" or "speaking-result"
+
+    // I think There is no need to check strpos($slug, 'result') !== 0 if we are checking 'speaking-result' with && operator
     if (strpos($slug, 'result') !== 0 && strpos($slug, 'speaking-result') !== 0) {
         return;
     }
@@ -129,7 +131,7 @@ function writify_enqueue_scripts_footer()
         const entryId = <?php echo json_encode($entry_id); ?>;
         // Include the nonce in the source URL
         const nonce = "<?php echo $nonce; ?>";
-        const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`;
+        const sourceUrl = `test/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`;
 
         const source = new EventSource(sourceUrl);
         source.onmessage = function (event) {
@@ -325,6 +327,10 @@ function writify_make_request($feed, $entry, $form, $stream_to_frontend)
             return writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, $form, $stream_to_frontend, $endpoint);
         case "whisper":
             return writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form);
+        case 'languagetool':
+            return writify_handle_languagetool($GWiz_GF_OpenAI_Object, $feed, $entry, $form);
+        case 'pronunciation':
+            return writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $form);
     }
 }
 
@@ -772,6 +778,154 @@ function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form
 
 }
 
+function writify_handle_languagetool($GWiz_GF_OpenAI_Object, $feed, $entry, $form)
+{
+    // Prepare Payload
+    $text_field_id = rgar($feed['meta'], 'languagetool_text_source_field');
+    $text = rgar($entry, $text_field_id);
+    $language = rgar($feed['meta'], 'languagetool__language', 'en-US');
+    $enabled_only = rgar($feed['meta'], 'languagetool__enabled_only', 'false');
+    $level = rgar($feed['meta'], 'languagetool__level', 'default');
+    $disabled_categories = rgar($feed['meta'], 'languagetool__disabled_categories', '');
+
+    $body = array(
+        'text' => $text,
+        'language' => $language,
+        'enabledOnly' => $enabled_only,
+        'level' => $level,
+        'disabledCategories' => $disabled_categories
+    );
+
+    // Log the request body
+    $GWiz_GF_OpenAI_Object->log_debug("Request body for LanguageTool API: " . print_r($body, true));
+
+    // Send Request
+    $response = $GWiz_GF_OpenAI_Object->make_request('languagetool', $body, $feed);
+    $GWiz_GF_OpenAI_Object->log_debug("Response from LanguageTool API: " . print_r($response, true));
+
+    if (is_wp_error($response)) {
+        $GWiz_GF_OpenAI_Object->log_debug("Error from LanguageTool API: " . $response->get_error_message());
+        $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+    } else if (rgar($response, 'error')) {
+        $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
+        $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
+    } else {
+        $response_body = $response['body']; // Assuming response body contains the relevant data
+        GFAPI::add_note(
+            $entry['id'],
+            0,
+            'LanguageTool API Response (' . $feed['meta']['feed_name'] . ')',
+            $response_body
+        );
+
+        // Optionally, store the response as a meta for the entry
+        gform_add_meta($entry['id'], 'languagetool_response_' . $feed['id'], $response_body);
+
+        // Update the entry if needed
+        $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $response_body);
+    }
+
+    return $entry;
+}
+
+function writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $form)
+{
+    // Get field IDs and settings from the feed
+    $text_field_id = rgar($feed['meta'], 'pronunciation_reference_text_field');
+    $file_field_id = rgar($feed['meta'], 'pronunciation_audio_file_field');
+    $grading_system = rgar($feed['meta'], 'pronunciation_grading_system', 'HundredMark');
+    $granularity = rgar($feed['meta'], 'pronunciation_granularity', 'Phoneme');
+    $dimension = rgar($feed['meta'], 'pronunciation_dimension', 'Comprehensive');
+    $enable_prosody = rgar($feed['meta'], 'pronunciation_enable_prosody', 'true');
+
+    // Get the file URLs and reference text from the entry
+    $file_urls = rgar($entry, $file_field_id);
+    $reference_text = rgar($entry, $text_field_id);
+
+    // Convert file_urls to array if it's a JSON string
+    if (is_string($file_urls)) {
+        $file_urls = json_decode($file_urls, true);
+    }
+
+    // Initialize an array to store responses
+    $responses = array();
+
+    // Proceed only if $file_urls is an array
+    if (is_array($file_urls)) {
+        foreach ($file_urls as $file_url) {
+            $GWiz_GF_OpenAI_Object->log_debug("Processing file URL: {$file_url}");
+
+            // Prepare the request body
+            $body = array(
+                'url' => $file_url,
+                'reference_text' => $reference_text,
+                'grading_system' => $grading_system,
+                'granularity' => $granularity,
+                'dimension' => $dimension,
+                'enable_prosody' => $enable_prosody
+            );
+
+            $GWiz_GF_OpenAI_Object->log_debug("Request body for Pronunciation API: " . print_r($body, true));
+
+            GFAPI::add_note(
+                $entry["id"],
+                0,
+                "OpenAI Request (" . $feed["meta"]["feed_name"] . ")",
+                sprintf(
+                    __(
+                        "Sent request to OpenAI pronunciation endpoint.",
+                        "gravityforms-openai"
+                    )
+                )
+            );
+
+            $response = $GWiz_GF_OpenAI_Object->make_request('pronunciation', $body, $feed);
+            $GWiz_GF_OpenAI_Object->log_debug("Response from Pronunciation API: " . print_r($response, true));
+
+            if (is_wp_error($response)) {
+                $GWiz_GF_OpenAI_Object->log_debug("Error from Pronunciation API: " . $response->get_error_message());
+                $GWiz_GF_OpenAI_Object->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+            } else if (rgar($response, 'error')) {
+                $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
+                $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
+            } else {
+                $response_body = wp_remote_retrieve_body($response);
+                $response_body = $GWiz_GF_OpenAI_Object->parse_event_stream_data($response_body);
+                $pretty_json = json_encode($response_body, JSON_PRETTY_PRINT);
+                $GWiz_GF_OpenAI_Object->log_debug("Pretty JSON: " . print_r($pretty_json, true));
+                $responses[$file_url] = $pretty_json;
+
+                GFAPI::add_note(
+                    $entry['id'],
+                    0,
+                    'Pronunciation API Response (' . $feed['meta']['feed_name'] . ')',
+                    $pretty_json
+                );
+
+                // Optionally, store the response as a meta for the entry
+                gform_add_meta($entry['id'], 'pronunciation_response_' . $feed['id'], $responses);
+
+                // Stream each response using SSE
+                echo "data: " . json_encode(['response' => $pretty_json]) . "\n\n";
+                flush(); // Flush data to the browser after each file is processed
+            }
+        }
+    } else {
+        $GWiz_GF_OpenAI_Object->log_debug("file_urls is not an array.");
+    }
+
+    // Logging the combined responses
+    $GWiz_GF_OpenAI_Object->log_debug("Combined pronunciation responses: " . print_r($responses, true));
+
+    // Update the entry with the combined responses
+    if (!empty($responses)) {
+        GFAPI::add_note($entry['id'], 0, 'Pronunciation API Combined Response', implode("\n\n", $responses));
+        $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, implode("\n\n", $responses));
+    }
+
+    return $entry;
+}
+
 function get_user_primary_identifier()
 {
     $current_user = wp_get_current_user();
@@ -977,6 +1131,9 @@ function event_stream_openai(WP_REST_Request $request)
  */
 function writify_update_post_advancedpostcreation($form, $entry_id)
 {
+    if(!class_exists('GF_Advanced_Post_Creation')){
+        return;
+    }
 
     GFCommon::log_debug('writify_update_post_advancedpostcreation(): running');
     // Get the updated entry.
