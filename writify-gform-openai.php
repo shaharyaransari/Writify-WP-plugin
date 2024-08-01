@@ -131,7 +131,7 @@ function writify_enqueue_scripts_footer()
         const entryId = <?php echo json_encode($entry_id); ?>;
         // Include the nonce in the source URL
         const nonce = "<?php echo $nonce; ?>";
-        const sourceUrl = `test/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`;
+        const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`;
 
         const source = new EventSource(sourceUrl);
         source.onmessage = function (event) {
