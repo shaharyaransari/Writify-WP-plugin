@@ -44,6 +44,13 @@ const tokenClient = google.accounts.oauth2.initTokenClient({
 // Handle auth click
 function handleAuthClick(event) {
     event.preventDefault();
+    // Check We have the API Key and Client ID
+    if (!driveData.api_key) {
+        alert('API Key is missing');
+        if (!driveData.client_id) {
+            alert('Client ID is missing');
+        }
+    }
     const fileSavedButton = document.getElementById("file-saved-button");
     if (fileSavedButton) {
         fileSavedButton.style.display = 'block';

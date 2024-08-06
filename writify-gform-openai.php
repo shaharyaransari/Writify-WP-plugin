@@ -218,6 +218,9 @@ function writify_enqueue_scripts()
 {
     // Get current post
     global $post;
+    // Initialize GF OPEN AI OBJECT
+    $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
+    $settings = $this->get_plugin_settings();
 
     // Check if we're inside a post and get the slug
     if (is_a($post, 'WP_Post')) {
@@ -266,8 +269,8 @@ function writify_enqueue_scripts()
             $file_name .= '-' . date('Y-m-d-His') . '.docx';
             wp_localize_script('google-drive-integration', 'driveData', array(
                 'file_name' => $file_name,
-                'api_key' => '',
-                'client_id' => ''
+                'api_key' => $settings['gcloud_console_api_key'],
+                'client_id' => $settings['gcloud_app_client_id']
             ));
 
             // Enqueue the text interaction handler script
