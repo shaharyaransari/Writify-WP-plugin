@@ -1,10 +1,11 @@
 /**
  * Script Name: Docx Export
- * Version: 1.1.1
- * Last Updated: 23-7-2024
+ * Version: 1.1.2
+ * Last Updated: 04-8-2024
  * Author: bi1101
  * Description: Export the result page as docx files with comments.
  */
+var generatedBlob = null;
 function extractRawCommentsFromHTML() {
     const vocabElements = document.querySelectorAll(".upgrade_vocab");
     const rawComments = [];
@@ -315,7 +316,7 @@ async function fetchStylesXML() {
     return xmlText;
 }
 
-async function exportDocument() {
+async function exportDocument(saveBlob = true) {
     const customStyles = await fetchStylesXML();
 
     const rawComments = extractRawCommentsFromHTML();
@@ -379,10 +380,18 @@ async function exportDocument() {
     });
 
     // Convert the document to a blob and save it
-    docx.Packer.toBlob(doc).then((blob) => {
-        saveBlobAsDocx(blob);
-    });
+    generatedBlob = await docx.Packer.toBlob(doc);
+    if(saveBlob == true){
+        saveBlobAsDocx(generatedBlob);
+    }
 }
+
+    async function getGeneratedBlob() {
+        if(!generatedBlob){
+            await exportDocument(false);
+        }
+        return generatedBlob;
+    }
 
 function createHeaderParagraph(text) {
     const { Paragraph, TextRun, HeadingLevel } = docx;

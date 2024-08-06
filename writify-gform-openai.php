@@ -225,7 +225,7 @@ function writify_enqueue_scripts()
 
         // Enqueue the script only if the slug starts with 'result'
         if (substr($slug, 0, 6) === 'result') {
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.1', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.2', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
@@ -253,6 +253,22 @@ function writify_enqueue_scripts()
 
             // Enqueue Remarkable Markdown Parser
             wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
+            // google Scripts 
+            wp_enqueue_script('google-client', 'https://accounts.google.com/gsi/client', array(), null, true);
+            wp_enqueue_script('google-api', 'https://apis.google.com/js/api.js?onload=onApiLoad', array(), null, true);
+            wp_enqueue_script('google-drive-integration', plugin_dir_url(__FILE__) . 'Assets/js/google-drive-export.js', array('google-client', 'google-api', 'writify-docx-export'), time(), true);
+    
+            // Localize the script with the file name parameter
+            $file_name = 'Result';
+            if (isset($_GET['entry_id'])) {
+                $file_name .= '-' . sanitize_text_field($_GET['entry_id']);
+            }
+            $file_name .= '-' . date('Y-m-d-His') . '.docx';
+            wp_localize_script('google-drive-integration', 'driveData', array(
+                'file_name' => $file_name,
+                'api_key' => '',
+                'client_id' => ''
+            ));
 
             // Enqueue the text interaction handler script
             wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
@@ -264,7 +280,7 @@ function writify_enqueue_scripts()
         // Enqueue the script only if the slug starts with 'speaking-result'
         if (substr($slug, 0, 15) === 'speaking-result') {
             // Enqueue necessary scripts
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.2', true);
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.3', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
             // Enqueue FileSaver script
@@ -307,6 +323,50 @@ function writify_enqueue_scripts()
 
 add_action('wp_enqueue_scripts', 'writify_enqueue_scripts');
 
+function google_drive_further_actions_shortcode() {
+    ob_start();
+    ?>
+    <div class="popup" id="google-drive-popup">
+        <div class="popup-content">
+            <button class="close-popup" id="close-drive-popup">Close</button>
+            <h3>Please enter the file name and select the Google Drive folder you want to save to.</h3>
+            <div class="google-drive-form-container">
+                <input type="text" id="file-name" placeholder="File Name">
+                <button id="export-google-docs">Save to Google Drive</button>
+            </div>
+            <div class="google-drive-form-container">
+                <a class="button btn file-saved-button" target="_blank" id="file-saved-button">File Saved See the file</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const openPopupButton = document.getElementById("open-drive-popup");
+            const closePopupButton = document.getElementById("close-drive-popup");
+            const popup = document.getElementById("google-drive-popup");
+
+            openPopupButton.addEventListener("click", function () {
+                popup.style.display = "flex";
+            });
+
+            closePopupButton.addEventListener("click", function () {
+                popup.style.display = "none";
+            });
+
+            document.getElementById("export-google-docs").addEventListener("click", function (event) {
+                event.preventDefault();
+                handleAuthClick();
+            });
+
+            if (oauthToken) {
+                onApiLoad(); // Load Picker API if token is already available
+            }
+        });
+    </script>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('google-drive-further-actions', 'google_drive_further_actions_shortcode');
 
 /**
  * Makes a request to the OpenAI API for chat completions and Whisper and stream the reponse to the front end.
