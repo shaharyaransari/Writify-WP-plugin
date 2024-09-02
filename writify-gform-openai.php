@@ -96,6 +96,134 @@ function writify_register_routes()
 add_action('rest_api_init', 'writify_register_routes');
 
 add_action("wp_footer", "writify_enqueue_scripts_footer", 9999);
+
+// add_action("wp_footer", "speaking_result_page_script", 99999);
+
+function speaking_result_page_script()
+{
+    global $post;
+    $slug = $post->post_name;
+
+    // Check if the page slug begins with "result" or "speaking-result"
+
+    // I think There is no need to check strpos($slug, 'result') !== 0 if we are checking 'speaking-result' with && operator
+    if ($post->ID != 2875) {
+        return;
+    }
+
+    // Moved repeated code to a single function.
+    $get_int_val = function ($key) {
+        return isset($_GET[$key]) ? (int) sanitize_text_field($_GET[$key]) : 0;
+    };
+
+    $form_id = $get_int_val("form_id");
+    $entry_id = $get_int_val("entry_id");
+    $nonce = wp_create_nonce('wp_rest');
+    $rest_url = rest_url();
+    // Instantiate GWiz_GF_OpenAI object and log the nonce
+    $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
+    $GWiz_GF_OpenAI_Object->log_debug("Created nonce in footer: " . $nonce);
+    ?>
+    <script>
+        var div_index = 0, div_index_str = '';
+        var buffer = ""; // Buffer for holding messages
+        var responseBuffer = '';
+        var md = new Remarkable();
+
+        const formId = <?php echo json_encode($form_id); ?>;
+        const entryId = <?php echo json_encode($entry_id); ?>;
+        // Include the nonce in the source URL
+        const nonce = "<?php echo $nonce; ?>";
+        const sourceUrl = `<?php echo $rest_url; ?>writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`
+        console.log(nonce);
+        const source = new EventSource(sourceUrl);
+        source.addEventListener('message', handleEventStream);
+        source.addEventListener('whisper', handleEventStream);
+        source.addEventListener('chat/completions', handleEventStream);
+        source.addEventListener('languagetool', handleEventStream);
+        source.addEventListener('pronunciation', handleEventStream);
+
+        function handleEventStream(event) {
+            if (event.data == "[ALLDONE]") {
+                source.close();
+            } else if (event.data.startsWith("[DIVINDEX-")) {
+                // New Feed Started
+                // // Clear the buffer
+                buffer = "";
+                div_index_str = event.data.replace("[DIVINDEX-", "").replace("]", "");
+                div_index = parseInt(div_index_str);
+                console.log(div_index);
+                jQuery('.response-div-' + (div_index)).css('display', 'flex');
+                jQuery('.response-div-divider' + (div_index)).show();
+            } else if (event.data == "[DONE]") {
+                // Previous Feed Completed
+
+                // When a message is done, convert the buffer to HTML and display it
+                // var html = md.render(buffer);
+                // jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+                // var current_div = jQuery('.response-div-' + div_index).find('.e-con');
+                // current_div.html(html); // Replace the current HTML content with the processed markdown
+
+                // jQuery.when(current_div.html(html)).then(function () {
+                //     // Add the "upgrade_vocab" class to the <li> elements that match the format
+                //     addUpgradeVocabClass(current_div);
+                // });
+
+                // Clear the buffer
+                buffer = "";
+            } else if(event.type !== 'message') { // Deal with Only Specific Event Types Now
+                // Means Event Has Some Data
+                console.log(event.type);
+                // var jsonResponse = JSON.parse(event.data);
+
+                // if (jsonResponse.streamType === 'question') {
+                //     // Handling question stream in chunks
+                //     // var questionChunk = jsonResponse.response;
+                //     // if (questionChunk !== undefined) {
+                //     //     buffer += questionChunk;
+                //     //     var html = md.render(buffer);
+                //     //     var questionDiv = document.querySelector('.essay_prompt .elementor-widget-container');
+                //     //     questionDiv.innerHTML = html;
+                //     // }
+                // } else {
+                //     console.log(event.data);
+                //     // Handling my-text stream in chunks
+                //     // var responseChunk = jsonResponse.response;
+                //     // if (responseChunk !== undefined) {
+                //     //     buffer += responseChunk;
+                //     //     var html = md.render(buffer);
+                //     //     var myTextDiv = document.getElementById('my-text');
+                //     //     myTextDiv.innerHTML = html;
+                //     // }
+                // }
+            }
+            // else {
+            //     console.log(event.data);
+            //     // // Add the message to the buffer
+            //     // var choices = JSON.parse(event.data).choices;
+            //     // if (choices[0].delta.content !== null) {
+            //     //     text = choices[0].delta.content;
+            //     // }
+            //     // if (text !== undefined) {
+            //     //     buffer += text;
+            //     //     // Convert the buffer to HTML and display it
+            //     //     var html = md.render(buffer);
+            //     //     jQuery('.response-div-' + div_index).find('.preloader-icon').hide();
+            //     //     var current_div = jQuery('.response-div-' + div_index).find('.e-con');
+            //     //     current_div.html(html); // Replace the current HTML content with the processed markdown
+            //     // }
+            // }
+        };
+        source.onerror = function (event) {
+            div_index = 0;
+            source.close();
+            jQuery('.error_message').css('display', 'flex');
+        };
+
+    </script>
+    <?php
+}
+
 function writify_enqueue_scripts_footer()
 {
     global $post;
@@ -119,7 +247,6 @@ function writify_enqueue_scripts_footer()
     // Instantiate GWiz_GF_OpenAI object and log the nonce
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
     $GWiz_GF_OpenAI_Object->log_debug("Created nonce in footer: " . $nonce);
-
     ?>
     <script>
         var div_index = 0, div_index_str = '';
@@ -131,10 +258,21 @@ function writify_enqueue_scripts_footer()
         const entryId = <?php echo json_encode($entry_id); ?>;
         // Include the nonce in the source URL
         const nonce = "<?php echo $nonce; ?>";
-        const sourceUrl = `/wp-json/writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`;
-
+        const sourceUrl = `<?php echo rest_url(); ?>writify/v1/event_stream_openai?form_id=${formId}&entry_id=${entryId}&_wpnonce=${nonce}`
+        console.log(nonce);
         const source = new EventSource(sourceUrl);
-        source.onmessage = function (event) {
+        source.addEventListener('message', handleEventStream);
+        source.addEventListener('whisper', handleEventStream);
+        source.addEventListener('chat/completions', handleEventStream);
+        source.addEventListener('languagetool', handleEventStream);
+
+        source.onerror = function (event) {
+            div_index = 0;
+            source.close();
+            jQuery('.error_message').css('display', 'flex');
+        };
+
+        function handleEventStream(event) {
             if (event.data == "[ALLDONE]") {
                 source.close();
             } else if (event.data.startsWith("[DIVINDEX-")) {
@@ -198,12 +336,7 @@ function writify_enqueue_scripts_footer()
                     current_div.html(html); // Replace the current HTML content with the processed markdown
                 }
             }
-        };
-        source.onerror = function (event) {
-            div_index = 0;
-            source.close();
-            jQuery('.error_message').css('display', 'flex');
-        };
+        }
 
     </script>
     <?php
@@ -220,14 +353,24 @@ function writify_enqueue_scripts()
     global $post;
     // Initialize GF OPEN AI OBJECT
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
-    $settings = $this->get_plugin_settings();
+    $settings = $GWiz_GF_OpenAI_Object->get_plugin_settings();
 
     // Check if we're inside a post and get the slug
     if (is_a($post, 'WP_Post')) {
         $slug = $post->post_name;
-
+        // Enqueue New Result Page Script 
+        if($post->ID == 2875){
+            wp_enqueue_script('gf-result-speaking', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_speaking.js', array('jquery'), time(), true);
+            // Localize the script with data
+            wp_localize_script('gf-result-speaking', 'gfResultSpeaking', array(
+                'formId' => isset($_GET['form_id']) ? (int) sanitize_text_field($_GET['form_id']) : 0,
+                'entryId' => isset($_GET['entry_id']) ? (int) sanitize_text_field($_GET['entry_id']) : 0,
+                'nonce' => wp_create_nonce('wp_rest'),
+                'restUrl' => rest_url(),
+            ));
+        }
         // Enqueue the script only if the slug starts with 'result'
-        if (substr($slug, 0, 6) === 'result') {
+        if (substr($slug, 0, 6) === 'result' || $post->ID == 2875) {
             wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.2', true);
             // Enqueue Docx script
             wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
@@ -635,17 +778,20 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
                 $GWiz_GF_OpenAI_Object->log_debug("Processed item: " . json_encode($pop_js));
         
                 if ($stream_to_frontend === 'yes') {
+                    echo "event: " . 'chat/completions' . PHP_EOL;
                     echo "data: " . $pop_item . "\n\n";
                     flush();
                 }
                 if ($stream_to_frontend === 'question') {
                     if (!empty($line)) {
+                        echo "event: " . 'chat/completions' . PHP_EOL;
                         echo "data: " . json_encode(['response' => $line, 'streamType' => 'question']) . "\n\n";
                         flush();
                     }
                 }
                 if ($stream_to_frontend === 'text') {
                     if (!empty($line)) { // Only send non-empty lines
+                        echo "event: " . 'chat/completions' . PHP_EOL;
                         echo "data: " . json_encode(['response' => $line]) . "\n\n";
                     }
                     flush(); // Ensure the data is sent to the client immediately
@@ -754,6 +900,7 @@ function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form
     $GWiz_GF_OpenAI_Object->log_debug("File URLs: " . print_r($file_urls, true));
 
     $combined_text = ""; // Initialize a string to store all transcriptions
+    $combined_response = [];
 
     // Decode JSON string to array if necessary
     if (is_string($file_urls)) {
@@ -774,7 +921,8 @@ function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form
                     'file' => $curl_file,
                     'model' => $model,
                     'prompt' => $prompt,
-                    'language' => $language
+                    'language' => $language,
+                    'response_format' => 'verbose_json'
                 );
                 $GWiz_GF_OpenAI_Object->log_debug("Request body for Whisper API: " . print_r($body, true));
 
@@ -801,15 +949,17 @@ function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form
                     $GWiz_GF_OpenAI_Object->log_debug("Error in response data: " . $response['error']['message']);
                     $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
                 } else {
-                    $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+                    // $text = $GWiz_GF_OpenAI_Object->get_text_from_response($response);
+                    $text = $response['text'];
                     $GWiz_GF_OpenAI_Object->log_debug("Transcription text: {$text}");
                     if (!is_wp_error($text)) {
                         GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
                         // Append each transcription to the combined string
                         $combined_text .= $text . "\n\n";
-
+                        $combined_response[] = $response;
                         // Stream each response using SSE
-                        echo "data: " . json_encode(['response' => $text]) . "\n\n";
+                        echo "event: " . 'whisper' . PHP_EOL;
+                        echo "data: " . json_encode(['response' => $response]) . "\n\n";
                         flush(); // Flush data to the browser after each file is transcribed
                     } else {
                         $GWiz_GF_OpenAI_Object->log_debug("Error in extracting text: " . $text->get_error_message());
@@ -834,7 +984,8 @@ function writify_handle_whisper_API($GWiz_GF_OpenAI_Object, $feed, $entry, $form
         $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
 
         // Optionally, store the combined text as a meta for the entry
-        gform_add_meta($entry['id'], 'whisper_combined_response', $combined_text);
+        gform_add_meta($entry['id'], 'whisper_combined_response', $combined_response);
+        gform_add_meta($entry['id'], 'audio_urls', $file_urls);
     }
 
     return $entry;
@@ -880,12 +1031,14 @@ function writify_handle_languagetool($GWiz_GF_OpenAI_Object, $feed, $entry, $for
             'LanguageTool API Response (' . $feed['meta']['feed_name'] . ')',
             $response_body
         );
-
         // Optionally, store the response as a meta for the entry
         gform_add_meta($entry['id'], 'languagetool_response_' . $feed['id'], $response_body);
-
         // Update the entry if needed
         $entry = $GWiz_GF_OpenAI_Object->maybe_save_result_to_field($feed, $entry, $form, $response_body);
+        // Stream each response using SSE
+        echo "event: " . 'languagetool' . PHP_EOL;
+        echo "data: " . json_encode(['response' => $response_body]) . "\n\n";
+        flush(); // Flush data to the browser after each file is processed
     }
 
     return $entry;
@@ -896,6 +1049,12 @@ function writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $fo
     // Get field IDs and settings from the feed
     $text_field_id = rgar($feed['meta'], 'pronunciation_reference_text_field');
     $file_field_id = rgar($feed['meta'], 'pronunciation_audio_file_field');
+
+    // If Whisper Field Is available Take ID From That field 
+    $whisper_file_field = rgar($feed['meta'], 'whisper_file_field');
+    if($whisper_file_field){
+        $file_field_id = $whisper_file_field;
+    }
     $grading_system = rgar($feed['meta'], 'pronunciation_grading_system', 'HundredMark');
     $granularity = rgar($feed['meta'], 'pronunciation_granularity', 'Phoneme');
     $dimension = rgar($feed['meta'], 'pronunciation_dimension', 'Comprehensive');
@@ -911,11 +1070,12 @@ function writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $fo
     }
 
     // Initialize an array to store responses
-    $responses = array();
-
+    $pronun_combined_response = array();
+    $url_count = 0;
     // Proceed only if $file_urls is an array
     if (is_array($file_urls)) {
         foreach ($file_urls as $file_url) {
+            $url_count++;
             $GWiz_GF_OpenAI_Object->log_debug("Processing file URL: {$file_url}");
 
             // Prepare the request body
@@ -953,22 +1113,24 @@ function writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $fo
                 $GWiz_GF_OpenAI_Object->add_feed_error($response['error']['message'], $feed, $entry, $form);
             } else {
                 $response_body = wp_remote_retrieve_body($response);
+                $GWiz_GF_OpenAI_Object->log_debug("Pronunciation Response Body " . $response_body);
                 $response_body = $GWiz_GF_OpenAI_Object->parse_event_stream_data($response_body);
                 $pretty_json = json_encode($response_body, JSON_PRETTY_PRINT);
                 $GWiz_GF_OpenAI_Object->log_debug("Pretty JSON: " . print_r($pretty_json, true));
-                $responses[$file_url] = $pretty_json;
-
+                $pronun_combined_response[$file_url] = $pretty_json;
+                $GWiz_GF_OpenAI_Object->log_debug("Processed File URL: " . $file_url);
                 GFAPI::add_note(
                     $entry['id'],
                     0,
                     'Pronunciation API Response (' . $feed['meta']['feed_name'] . ')',
                     $pretty_json
                 );
-
+                $GWiz_GF_OpenAI_Object->log_debug("Before Saving Value in Entry Meta pronunciation_response_$url_count:".print_r($pretty_json));
                 // Optionally, store the response as a meta for the entry
-                gform_add_meta($entry['id'], 'pronunciation_response_' . $feed['id'], $responses);
+                gform_add_meta($entry['id'], 'pronunciation_response_' . $url_count, $pretty_json);
 
                 // Stream each response using SSE
+                echo "event: " . 'pronunciation' . PHP_EOL;
                 echo "data: " . json_encode(['response' => $pretty_json]) . "\n\n";
                 flush(); // Flush data to the browser after each file is processed
             }
@@ -1027,9 +1189,11 @@ function event_stream_openai(WP_REST_Request $request)
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
 
     // New function to output SSE data.
-    $send_data = function ($data) {
+    $send_data = function ($data,$event = 'message') {
+        echo "event: " . $event . PHP_EOL;
         echo "data: " . $data . PHP_EOL;
         echo PHP_EOL;
+        ob_flush();
         flush();
     };
 
@@ -1115,9 +1279,36 @@ function event_stream_openai(WP_REST_Request $request)
                 if ($end_point === "whisper") {
                     // Handle Whisper API response
                     // Assuming $entry[$field_id] contains the Whisper response
-                    $whisperResponse = $entry[$field_id];
-                    $send_data(json_encode(['response' => $whisperResponse]));
+                    $audio_urls = gform_get_meta($entry['id'], 'audio_urls');
+                    $send_data(json_encode(['response' => $audio_urls]), 'audio_urls');
+                    $whisperResponses = gform_get_meta($entry['id'], 'whisper_combined_response');
+                    if(is_array($whisperResponses)){
+                        foreach($whisperResponses as $whisperResponse){
+                            $send_data(json_encode(['response' => $whisperResponse]), $end_point);
+                        }
+                    }else{
+                        $send_data(json_encode(['response' => $whisperResponses]), $end_point);
+                    }
                 }
+
+                if ($end_point === "chat/completions") {
+                    
+                    $chat_completions = $entry[$field_id];
+                    $send_data(json_encode(['response' => $chat_completions]), $end_point);
+                }
+
+                if ($end_point === "languagetool") {
+                    $languagetool_response = $entry[$field_id];
+                    $send_data(json_encode(['response' => $languagetool_response]) , $end_point);
+                }
+
+                if ($end_point === "pronunciation") {
+                    for($i = 1; $i <= count($audio_urls) ; $i++){
+                        $pronun_response = gform_get_meta($entry['id'], "pronunciation_response_$i");
+                        $send_data(json_encode(['response' => $pronun_response]), $end_point);
+                    }
+                }
+
                 if ($stream_to_frontend === 'yes') {
                     $lines = explode("<br />", $entry[$field_id]);
                     foreach ($lines as $line) {
@@ -1140,20 +1331,24 @@ function event_stream_openai(WP_REST_Request $request)
                     }
                 }
             } else {
+                $send_data("[FIRST-TIME]");
                 // All requirements are met; process feed.
                 $returned_entry = writify_make_request($feed, $entry, $form, $stream_to_frontend);
-
+               
                 // If returned value from the processed feed call is an array containing an id, set the entry to its value.
                 if (is_array($returned_entry)) {
                     $entry = $returned_entry;
+                    // Send Audio URLS If Feed Endpoint is whisper
+                    if($end_point == 'whisper'){
+                        $audio_urls = gform_get_meta($entry['id'], 'audio_urls');
+                        $send_data(json_encode(['response' => $audio_urls]), 'audio_urls');
+                    }
                     // Adding this feed to the list of processed feeds
                     $processed_feeds[] = $feed["id"];
 
                     // Update the processed_feeds metadata after each feed is processed
                     $meta[$_slug] = $processed_feeds;
                     gform_update_meta($entry["id"], "processed_feeds", $meta);
-                } else {
-                    //skip
                 }
                 if ($stream_to_frontend === 'yes' | $stream_to_frontend === 'question' | $stream_to_frontend === 'text') {
                     $send_data("[DONE]");
