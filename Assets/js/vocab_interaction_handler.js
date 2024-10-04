@@ -178,7 +178,6 @@ function addUpgradeVocabClass(div) {
         const $this = jQuery(this);
         const text = $this.text().trim();
         const updatedText = formatText(text);
-
         if (updatedText) {
             $this.html(updatedText);
             const $newDiv = createNewDivWithClass(this.innerHTML);

@@ -1,0 +1,154 @@
+/* ISFP Player CSS */
+.isfp-audio-player {
+    display: flex;
+    position: relative;
+    align-items: center;
+    gap: 20px;
+    transform: scale(0.9);
+}
+/* Player is faded and disabled */
+.isfp-audio-player.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.isfp-play-toggle[disabled],
+.volume input[disabled] {
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.isfp-controls-handler {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.isfp-play-toggle {
+    max-height: 41px;
+    overflow: hidden;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+}
+
+.isfp-play-toggle::after, 
+.isfp-vol-nav::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+.isfp-play-toggle[data-playing="true"] .isfp-play-icon {
+    display: none;
+}
+
+.isfp-play-toggle[data-playing="false"] .isfp-pause-icon {
+    display: none;
+}
+
+.isfp-vol-nav {
+    position: relative;
+    cursor: pointer;
+    max-height: 26px;
+}
+
+
+/* Volume Control */
+.isfp-audio-player .volume {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.isfp-audio-player .volume input[type=range] {
+    display: none;
+}
+
+.isfp-audio-player .volume .icon-size {
+    font-size: 1.2rem;
+    color: rgba(38, 55, 95, 1);
+    /* padding: 5px; */
+    width: 25px;
+}
+
+.isfp-audio-player .volume .bar-hoverbox {
+    padding: 10px 15px;
+    /* opacity: 0.7; */
+    transition: opacity 0.2s;
+}
+
+.isfp-audio-player .volume .bar-hoverbox:hover {
+    opacity: 1;
+    cursor: pointer;
+}
+
+.isfp-audio-player .volume .bar {
+    background: rgba(231, 232, 237, 1);
+    height: 7px;
+    width: 120px;
+    border-radius: 15px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.isfp-audio-player .volume .bar .bar-fill {
+    background: rgba(38, 55, 95, 1);
+    width: 0%;
+    height: 100%;
+    background-clip: border-box;
+    pointer-events: none;
+    border-radius: 10px;
+}
+
+
+/* Seek Bar CSS  */
+.seekbar-container {
+    position: relative;
+    width: 100%;
+    margin: 20px 0;
+    padding: 0 25px;
+}
+
+.seek-bar {
+    position: relative;
+    height: 6px;
+    background: rgba(231, 232, 237, 1);
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.seek-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: rgba(255, 46, 46, 1);
+    width: 0%;
+    border-radius: 5px;
+    transition: 0.3s linear;
+}
+
+.seek-thumb {
+    position: absolute;
+    top: -7px;
+    width: 50px;
+    height: 20px;
+    border-radius: 15px;
+    background-color: rgba(255, 46, 46, 1);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 1;
+    transition: 0.3s linear;
+}

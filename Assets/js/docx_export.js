@@ -413,7 +413,9 @@ function saveBlobAsDocx(blob) {
 
 // Event Listener
 document.addEventListener("DOMContentLoaded", function () {
-    document.getElementById("export-docx").addEventListener("click", function () {
+    console.log(document.getElementsByClasName("export-result-btn"));
+    document.getElementById("export-docx").addEventListener("click", function (event) {
+        console.log(this.event.target);
         exportDocument().catch(error => console.error(error));
     });
 });
