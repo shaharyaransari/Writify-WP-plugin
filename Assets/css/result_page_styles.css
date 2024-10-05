@@ -172,9 +172,10 @@ span.arrow {
     height: 56px;
     display: flex;
     align-items: center;
-    padding: 5px;
+    padding-block: 5px;
     border-radius: 5px;
     font-size: 19px !important;
+    padding-inline: 9px;
 }
 
 /* Player  */
@@ -296,17 +297,29 @@ span.arrow {
 	display:block;
 	width: 43px;
 	height: 43px;
-	background: rgba(38, 55, 95, 1);
+	background: #E9EBEF;
 	border-radius: 50%;
 	display:flex;
 	align-items:center;
 	justify-content:center;
-	color: white;
+	color: #26375F;
 	cursor:pointer;
 	transition: 0.3s ease;
 }
-.isfp-audio-pagination-wrap span:hover, .isfp-audio-pagination-wrap span.active{
-	background: rgba(255, 46, 46, 1);
+#isfp-audio-pagination{
+	margin-block: 10px;
+}
+.isfp-audio-pagination-wrap span:hover{
+	background: #DEE1E7;
+    color:#26375F;
+}
+.isfp-audio-pagination-wrap span.active{
+    background-color: #FF2E2E;
+    color:white;
+}
+.isfp-audio-pagination-wrap span.active:hover{
+    background-color: #E62929;
+    color:white;
 }
 
 /* Vocab Error Popup  */
@@ -599,15 +612,15 @@ span.arrow {
 
 .suggestions-parent-wrap{
 	height: 100vh;
-	max-height: 52vh;
-	overflow-y: auto;
-	padding-right: 10px;
+	max-height: calc(100vh - 300px) !important;
+	overflow-y: auto !important;
+	padding-right: 10px !important;
 }
 
 .transcript-parent-wrap {
-	max-height: 60vh;
-	overflow-y: auto;
-	padding-right: 10px;
+	max-height: calc(100vh - 190px) !important;
+	overflow-y: auto !important;
+	padding-right: 10px !important;
 }
 
 /* For WebKit browsers (Chrome, Safari, Edge) */
@@ -678,4 +691,85 @@ span.arrow {
 	width: 100%;
 	height: 100%;
 	background: transparent;
+}
+.dialog-type-lightbox{
+    z-index: 995 !important;
+}
+
+.google-drive-form-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    z-index: 9;
+}
+
+.google-drive-form-container input[type="text"] {
+    flex-grow: 1;
+    padding: 8px;
+    box-sizing: border-box;
+}
+
+.google-drive-form-container button {
+    width: fit-content;
+    padding: 8px;
+    box-sizing: border-box;
+    height: 42px;
+}
+
+.google-drive-form-container .file-saved-button {
+    display: none;
+    margin-top: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+/* Popup container */
+.popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 997;
+}
+
+/* Popup content */
+.popup-content {
+    background: #fff;
+    padding-inline: 25px; padding-block: 80px; border-radius: 5px;
+    width: 80%;
+    max-width: 500px;
+    position: relative;
+}
+
+.close-popup {
+    position: absolute;
+    top: -25px;
+    right: 50%;
+    transform: translatex(60%);
+    font-size: 0;
+    width: 50px !important;
+    height: 50px;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    border-radius: 0;
+    background: #eee;
+    color: black;
+    border: 3px solid white;
+    border-radius: 50%;
+}
+
+.close-popup:after {
+    content: '+';
+    font-size: 28px;
+    transform: translate(2px,-2px) rotate(45deg);
 }

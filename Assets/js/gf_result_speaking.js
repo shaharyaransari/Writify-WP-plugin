@@ -12,6 +12,7 @@ window.onload = function() {
             transcriptCarousel.on('slideChange', function() {
                 resultDataCarousel.slideTo(transcriptCarousel.activeIndex);
                 scoresCarousel.slideTo(transcriptCarousel.activeIndex);
+                adjustDataHeight(resultDataCarousel);
             });
 
             resultDataCarousel.on('slideChange', function() {
@@ -135,29 +136,31 @@ window.onload = function() {
                             isErrorOccured = true;
                             return;
                         }
-
-                        if(whisperResponse.length < 1){ // First Paint
-                            vocabTranscriptWrap.empty(); // Empty the Wrapper
-                            grammerTranscriptWrap.empty(); // Empty the Wrapper
-                            pronunTranscriptWrap.empty(); 
-                            fluencyTranscriptWrap.empty(); 
-                        }
                         // Store The Transcript Data From Whisper
                         let currentWhisperResponse = JSON.parse(event.data);
                         whisperResponse.push(currentWhisperResponse);
-                        // Extract Text with TimeStamp that should be Clickable to Play Audio
                         let fileIndex = whisperResponse.length - 1;
+                        // Extract Text with TimeStamp that should be Clickable to Play Audio
+                        
                         // Also Stream The Data on Frontend Live
                         let formatedResponse = formatWhisperResponse(currentWhisperResponse,audioFiles[fileIndex]);
                         
                         // vocabTranscriptWrap.append(`<strong>File: ${fileName}</strong>:`);
-                        vocabTranscriptWrap.append(formatedResponse);
-                        grammerTranscriptWrap.append(formatedResponse);
-                        pronunTranscriptWrap.append(formatedResponse);
-                        fluencyTranscriptWrap.append(formatedResponse);
-                        
-                        // Add Manual Feedback Option
+                        jQuery(vocabTranscriptWrap).find('.audio-transcript-section').first().before(formatedResponse);
+                        jQuery(grammerTranscriptWrap).find('.audio-transcript-section').first().before(formatedResponse);
+                        jQuery(pronunTranscriptWrap).find('.audio-transcript-section').first().before(formatedResponse);
+                        jQuery(fluencyTranscriptWrap).find('.audio-transcript-section').first().before(formatedResponse);                        
+
+                        // Add Manual Feedback Option For Pronunciation
                         setupManualFeedback(whisperResponse);
+                        // Remove Skeleton Loading
+                        console.log(fileIndex,audioFiles.length -1);
+                        if(fileIndex == (audioFiles.length -1)){ // Last Whisper
+                            jQuery(vocabTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
+                            jQuery(grammerTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
+                            jQuery(pronunTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
+                            jQuery(fluencyTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
+                        }
                         
                     }else if(event.type == 'wpm'){
                         let wpm = JSON.parse(event.data).response;
@@ -523,6 +526,9 @@ window.onload = function() {
                 let fluencyFileBlocks = $fluencytranscriptWrap.find('.file-block'); // Find all file blocks
 
                 // Loop through each error in the errors array
+                if(!errors){
+                    return;
+                }
                 errors.forEach(error => {
                     let found = false; // Track if the word pair has been found
 
@@ -582,6 +588,24 @@ window.onload = function() {
                 let shareBtn = document.querySelector('#share-result-trigger');
                 shareBtn.querySelector('.elementor-button').style.backgroundColor = '';
                 shareBtn.querySelector('.elementor-button').style.pointerEvents = '';
+            }
+
+            function adjustDataHeight(resultDataCarousel){
+                let suggestionsParentWrap = document.querySelector('.suggestions-parent-wrap');
+                let activeMistakeContainer = resultDataCarousel.wrapperEl.querySelector('.swiper-slide-active .mistake-container');
+                suggestionsParentWrap.scrollTop = suggestionsParentWrap.scrollTop = 0;
+                // Need to update overflow and padding
+                if(suggestionsParentWrap.scrollHeight > activeMistakeContainer.scrollHeight){
+                    // Remove overflow auto to parent container
+                    suggestionsParentWrap.style.setProperty('overflow-y','hidden','important')
+                    // Remove Padding to parent container
+                    suggestionsParentWrap.style.setProperty('padding-right','0','important')
+                }else{
+                    // add overflow auto to parent container
+                    suggestionsParentWrap.style.setProperty('overflow-y','auto','important')
+                    // add padding to parent container
+                    suggestionsParentWrap.style.setProperty('padding-right','10px','important')
+                }
             }
     });
 };

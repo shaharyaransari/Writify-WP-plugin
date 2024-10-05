@@ -324,7 +324,7 @@ function createFluencySection(){
     if(parseInt(wpm) < 110){
         // Red if less then 110
         wpmColor = '#FF4949';
-    }else if(parseInt(wpm) < 150){
+    }else if(parseInt(wpm) > 150){
         // Orange if greater then 150
         wpmColor = '#FF822E';
     }else{

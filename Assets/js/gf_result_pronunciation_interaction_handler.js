@@ -183,7 +183,9 @@ function processSavedPronunData(savedResponses){
     // console.log(savedResponses);
     savedResponses.forEach(savedResponse => {
         let response = JSON.parse(savedResponses).response.saved_response;
-        // console.log(response);
+        if(!response){
+            return;
+        }
         response.forEach(pronunErrorObj => {
             let start = pronunErrorObj.start;
             let $word = jQuery(`span[data-start="${start}"]`);
@@ -216,24 +218,34 @@ function processSavedPronunData(savedResponses){
             
             jQuery('.corrected-audio-play-trigger').on('click', function(event) {
                 event.stopPropagation();
+                event.target.style.pointerEvents = 'none';
             
                 // Get the audio URL from the data attribute
                 let audioUrl = jQuery(this).data('audio-url');
             
                 // Check if the audio URL is valid (non-empty, not undefined, not null)
                 if (audioUrl && audioUrl.trim() !== "") {
-                    // Here you can proceed with audio playback logic, for now we will just alert the URL
-                    // alert('Playing audio from URL: ' + audioUrl);
+                    // Check if an audio is already playing
+                    if (!jQuery(this).data('isPlaying')) {
+                        // Mark the audio as playing
+                        jQuery(this).data('isPlaying', true);
+                        
+                        // Implement audio playback logic
+                        let audio = new Audio(audioUrl);
+                        audio.play().catch(function(error) {
+                            alert('Error playing audio: ' + error.message);
+                        });
             
-                    // You can implement further logic for playing the audio using an HTML audio element
-                    let audio = new Audio(audioUrl);
-                    audio.play().catch(function(error) {
-                        alert('Error playing audio: ' + error.message);
-                    });
-            
+                        // Once the audio ends, set the flag to allow playback again
+                        audio.onended = function() {
+                            jQuery(event.target).data('isPlaying', false);
+                            event.target.style.pointerEvents = 'all';
+                        };
+                    }
                 } else {
                     // If no valid audio URL is available, show an alert
                     alert('Audio URL is not available or invalid.');
+                    event.target.style.pointerEvents = 'all';
                 }
             });
         });
@@ -256,6 +268,9 @@ function setupManualFeedback(whisperResponse) {
     $pronuntranscriptWrap.find('.file-block').each(function() {
         var $fileBlock = jQuery(this);
         var mergedWords = [];
+        if(!whisperResponse[fileIndex]){
+            return;
+        }
         let whisperWords = whisperResponse[fileIndex].response.words;
         wordIndex = 0;
         // Find all .transcript-text elements within the current .file-block
@@ -457,24 +472,34 @@ async function markPronunError($word,wrongPhonetics = null, manuallyMarked = tru
         
         jQuery('.corrected-audio-play-trigger').on('click', function(event) {
             event.stopPropagation();
+            event.target.style.pointerEvents = 'none';
         
             // Get the audio URL from the data attribute
             let audioUrl = jQuery(this).data('audio-url');
         
             // Check if the audio URL is valid (non-empty, not undefined, not null)
             if (audioUrl && audioUrl.trim() !== "") {
-                // Here you can proceed with audio playback logic, for now we will just alert the URL
-                // alert('Playing audio from URL: ' + audioUrl);
+                // Check if an audio is already playing
+                if (!jQuery(this).data('isPlaying')) {
+                    // Mark the audio as playing
+                    jQuery(this).data('isPlaying', true);
+                    
+                    // Implement audio playback logic
+                    let audio = new Audio(audioUrl);
+                    audio.play().catch(function(error) {
+                        alert('Error playing audio: ' + error.message);
+                    });
         
-                // You can implement further logic for playing the audio using an HTML audio element
-                let audio = new Audio(audioUrl);
-                audio.play().catch(function(error) {
-                    alert('Error playing audio: ' + error.message);
-                });
-        
+                    // Once the audio ends, set the flag to allow playback again
+                    audio.onended = function() {
+                        jQuery(event.target).data('isPlaying', false);
+                        event.target.style.pointerEvents = 'all';
+                    };
+                }
             } else {
                 // If no valid audio URL is available, show an alert
                 alert('Audio URL is not available or invalid.');
+                event.target.style.pointerEvents = 'all';
             }
         });
 

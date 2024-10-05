@@ -3,7 +3,7 @@ let oauthToken = sessionStorage.getItem('oauthToken');
 
 document.addEventListener("DOMContentLoaded", function () {
     const exportButton = document.getElementById("export-google-docs");
-    const fileSavedButton = document.getElementById("copy-result-link-trigger");
+    const fileSavedButton = document.getElementById("file-saved-button");
 
     if (exportButton) {
         exportButton.addEventListener("click", handleAuthClick);
@@ -55,7 +55,7 @@ function handleAuthClick() {
             alert('Client ID is missing');
         }
     }
-    const fileSavedButton = document.getElementById("copy-result-link-trigger");
+    const fileSavedButton = document.getElementById("file-saved-button");
     if (fileSavedButton) {
         fileSavedButton.style.display = 'block';
         fileSavedButton.textContent = 'Processing...';
@@ -105,7 +105,7 @@ function createPicker() {
 
 // Handle the results from the Picker
 function pickerCallback(data) {
-    const fileSavedButton = document.getElementById("copy-result-link-trigger");
+    const fileSavedButton = document.getElementById("file-saved-button");
     if (data.action === google.picker.Action.PICKED) {
         const folderId = data.docs[0].id;
         const fileNameInput = document.getElementById('file-name');
@@ -120,7 +120,7 @@ function pickerCallback(data) {
 
 // Upload file to Google Drive
 async function uploadFileToGoogleDrive(folderId, fileName) {
-    const fileSavedButton = document.getElementById("copy-result-link-trigger");
+    const fileSavedButton = document.getElementById("file-saved-button");
 
     try {
         const gapi = await initializeGapiClient();
@@ -166,4 +166,13 @@ async function uploadFileToGoogleDrive(folderId, fileName) {
             fileSavedButton.style.display = 'none';
         }
     }
+}
+function openDrivePopup(){
+    const popup = document.getElementById("google-drive-popup");
+    popup.style.display = "flex";
+}
+
+function closeDrivePopup(){
+    const popup = document.getElementById("google-drive-popup");
+    popup.style.display = "none";
 }

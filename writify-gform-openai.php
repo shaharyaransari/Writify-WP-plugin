@@ -407,9 +407,8 @@ function writify_enqueue_scripts_footer()
     global $post;
     $slug = $post->post_name;
     $gf_speaking_result_page_id = 6;
-    // Check if the page slug begins with "result" or "speaking-result"
 
-    // I think There is no need to check strpos($slug, 'result') !== 0 if we are checking 'speaking-result' with && operator
+    // Check if the page slug begins with "result" or "speaking-result"
     if (strpos($slug, 'result') !== 0 && strpos($slug, 'speaking-result') !== 0 || $post->ID == $gf_speaking_result_page_id) {
         return;
     }
@@ -521,7 +520,7 @@ function writify_enqueue_scripts_footer()
 }
 
 /**
- * Enqueues necessary scripts and styles based on the current post slug.
+ * Enqueues necessary scripts and styles For Different Result Pages.
  *
  * @return void
  */
@@ -534,137 +533,91 @@ function writify_enqueue_scripts()
     $GWiz_GF_OpenAI_Object = new GWiz_GF_OpenAI();
     $settings = $GWiz_GF_OpenAI_Object->get_plugin_settings();
 
-    // Check if we're inside a post and get the slug
+    // Check if we're inside a post
     if (is_a($post, 'WP_Post')) {
         $slug = $post->post_name;
-        // Enqueue New Result Page Script 
-        if($post->ID == $gf_speaking_result_page_id){
+
+        // General Scripts
+        wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
+        wp_enqueue_script('file-saver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js', array(), null, true);
+        wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
+        wp_enqueue_script('google-client', 'https://accounts.google.com/gsi/client', array(), null, true);
+        wp_enqueue_script('google-api', 'https://apis.google.com/js/api.js?onload=onApiLoad', array(), null, true);
+
+
+        // Enqueue scripts specifically for Speaking Result Page (based on page ID)
+        if ($post->ID == $gf_speaking_result_page_id) {
+            // Scripts for Speaking Result Page
             wp_enqueue_script('speaking-result-audio-player', plugin_dir_url(__FILE__) . 'Assets/js/result_audio_player.js', array('jquery'), time(), true);
             wp_enqueue_script('gf-result-speaking', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_speaking.js', array('jquery','speaking-result-audio-player'), time(), true);
             wp_enqueue_style('speaking-result-audio-player', plugin_dir_url(__FILE__) . 'Assets/css/result_audio_player.css', array(), time(), 'all');
-            wp_enqueue_style( 'font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css' );
+            wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css');
             wp_enqueue_script('gf-result-vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
             wp_enqueue_script('gf-result-grammer-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_grammer_interaction_handler.js', array('jquery'), '1.0.0', true);
             wp_enqueue_script('gf-result-pronun-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_pronunciation_interaction_handler.js', array('jquery'), '1.0.0', true);
-            // Localize the script with data
+
+            // Localize scripts for Speaking Result Page
             wp_localize_script('gf-result-speaking', 'gfResultSpeaking', array(
                 'formId' => isset($_GET['form_id']) ? (int) sanitize_text_field($_GET['form_id']) : 0,
                 'entryId' => isset($_GET['entry_id']) ? (int) sanitize_text_field($_GET['entry_id']) : 0,
                 'nonce' => wp_create_nonce('wp_rest'),
                 'restUrl' => rest_url(),
             ));
-
             wp_localize_script('gf-result-pronun-interaction-handler', 'pronunData', array(
                 'formId' => isset($_GET['form_id']) ? (int) sanitize_text_field($_GET['form_id']) : 0,
                 'entryId' => isset($_GET['entry_id']) ? (int) sanitize_text_field($_GET['entry_id']) : 0,
                 'nonce' => wp_create_nonce('pronun_api'),
                 'restUrl' => rest_url(),
             ));
+
+            // Enqueue additional scripts for DOCX export and Google Drive integration
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/gf_docx_export_speaking-result.js', array('jquery'), time(), true);
+            wp_enqueue_script('google-drive-integration', plugin_dir_url(__FILE__) . 'Assets/js/gf_google-drive-export-speaking-result.js', array('google-client', 'google-api', 'writify-docx-export'), time(), true);
+
         }
-        // Enqueue the script only if the slug starts with 'result'
-        if (substr($slug, 0, 6) === 'result') {
-            if($post->ID == $gf_speaking_result_page_id){
-                wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/gf_docx_export_speaking-result.js', array('jquery'), time(), true);
-            }else{
-                wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.2', true);
-            }
-            // Enqueue Docx script
-            wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
-            // Enqueue FileSaver script
-            wp_enqueue_script('file-saver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js', array(), null, true);
-
-            // Get current user's data
-            $current_user = wp_get_current_user();
-            $primary_identifier = get_user_primary_identifier();
-
-            // Modify the user's name if they are a subscriber or have no membership
-            $firstName = $current_user->user_firstname;
-            $lastName = $current_user->user_lastname;
-            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus' || $primary_identifier == 'plus_subscriber') {
-                $lastName .= " from IELTS Science"; // Add "from IELTS Science" to the last name
-            }
-
-            // Prepare data to pass to the script
-            $data_to_pass = array(
-                'firstName' => $firstName,
-                'lastName' => $lastName
-            );
-
-            // Localize the script with the data
-            wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
-
-            // Enqueue Remarkable Markdown Parser
-            wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
-            // google Scripts 
-            wp_enqueue_script('google-client', 'https://accounts.google.com/gsi/client', array(), null, true);
-            wp_enqueue_script('google-api', 'https://apis.google.com/js/api.js?onload=onApiLoad', array(), null, true);
-            if($post->ID == $gf_speaking_result_page_id){
-                wp_enqueue_script('google-drive-integration', plugin_dir_url(__FILE__) . 'Assets/js/gf_google-drive-export-speaking-result.js', array('google-client', 'google-api', 'writify-docx-export'), time(), true);
-            }else{
-                wp_enqueue_script('google-drive-integration', plugin_dir_url(__FILE__) . 'Assets/js/google-drive-export.js', array('google-client', 'google-api', 'writify-docx-export'), time(), true);
-            }
-    
-            // Localize the script with the file name parameter
-            $file_name = 'Result';
-            if (isset($_GET['entry_id'])) {
-                $file_name .= '-' . sanitize_text_field($_GET['entry_id']);
-            }
-            $file_name .= '-' . date('Y-m-d-His') . '.docx';
-            wp_localize_script('google-drive-integration', 'driveData', array(
-                'file_name' => $file_name,
-                'api_key' => $settings['gcloud_console_api_key'],
-                'client_id' => $settings['gcloud_app_client_id']
-            ));
-
-            // Enqueue the result page styles
-            wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
+        // General scripts for pages starting with 'result'
+        if (substr($slug, 0, 6) === 'result' && $post->ID != $gf_speaking_result_page_id) {
+            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export.js', array('jquery'), '1.1.2', true);
+            wp_enqueue_script('google-drive-integration', plugin_dir_url(__FILE__) . 'Assets/js/google-drive-export.js', array('google-client', 'google-api', 'writify-docx-export'), time(), true);
         }
 
-        if(substr($slug, 0, 6) === 'result' && $post->ID != 6){
-            // Enqueue the text interaction handler script
+        // Localize user data for DOCX export
+        $current_user = wp_get_current_user();
+        $primary_identifier = get_user_primary_identifier();
+        $firstName = $current_user->user_firstname;
+        $lastName = $current_user->user_lastname;
+        if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus' || $primary_identifier == 'plus_subscriber') {
+            $lastName .= " from IELTS Science";
+        }
+        wp_localize_script('writify-docx-export', 'writifyUserData', array(
+            'firstName' => $firstName,
+            'lastName' => $lastName
+        ));
+
+        // Localize script for Google Drive integration
+        $file_name = 'Result';
+        if (isset($_GET['entry_id'])) {
+            $file_name .= '-' . sanitize_text_field($_GET['entry_id']);
+        }
+        $file_name .= '-' . date('Y-m-d-His') . '.docx';
+        wp_localize_script('google-drive-integration', 'driveData', array(
+            'file_name' => $file_name,
+            'api_key' => $settings['gcloud_console_api_key'],
+            'client_id' => $settings['gcloud_app_client_id']
+        ));
+
+        // Enqueue result page styles
+        wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), time());
+
+        // Enqueue interaction handler script for non-speaking result pages (Existing Code Support)
+        if (substr($slug, 0, 6) === 'result' && $post->ID != $gf_speaking_result_page_id) {
             wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
         }
 
-        // Enqueue the script only if the slug starts with 'speaking-result'
+        // Enqueue Grammarly and other interaction scripts for pages starting with 'speaking-result'
         if (substr($slug, 0, 15) === 'speaking-result') {
-            // Enqueue necessary scripts
-            wp_enqueue_script('writify-docx-export', plugin_dir_url(__FILE__) . 'Assets/js/docx_export_speaking.js', array('jquery'), '1.0.3', true);
-            // Enqueue Docx script
-            wp_enqueue_script('docx', 'https://unpkg.com/docx@8.0.0/build/index.js', array(), null, true);
-            // Enqueue FileSaver script
-            wp_enqueue_script('file-saver', 'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.js', array(), null, true);
-
-            // Get current user's data
-            $current_user = wp_get_current_user();
-            $primary_identifier = get_user_primary_identifier();
-
-            // Modify the user's name if they are a subscriber or have no membership
-            $firstName = $current_user->user_firstname;
-            $lastName = $current_user->user_lastname;
-            if ($primary_identifier == 'No_membership' || $primary_identifier == 'subscriber' || $primary_identifier == 'Writify-plus' || $primary_identifier == 'plus_subscriber') {
-                $lastName .= " from IELTS Science"; // Add "IELTS Science" to the last name
-            }
-
-            // Prepare data to pass to the script
-            $data_to_pass = array(
-                'firstName' => $firstName,
-                'lastName' => $lastName
-            );
-
-            // Localize the script with the data
-            wp_localize_script('writify-docx-export', 'writifyUserData', $data_to_pass);
-
-            // Enqueue Remarkable Markdown Parser
-            wp_enqueue_script('remarkable', 'https://cdn.jsdelivr.net/remarkable/1.7.1/remarkable.min.js', array(), null, true);
-
-            // Enqueue Grammarly Editor SDK
             wp_enqueue_script('grammarly-editor-sdk', 'https://js.grammarly.com/grammarly-editor-sdk@2.5?clientId=client_MpGXzibWoFirSMscGdJ4Pt&packageName=%40grammarly%2Feditor-sdk', array(), null, true);
-
-            // Enqueue the text interaction handler script
             wp_enqueue_script('vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
-
-            // Enqueue the result page styles
-            wp_enqueue_style('result-page-styles', plugin_dir_url(__FILE__) . 'Assets/css/result_page_styles.css', array(), '1.0.0');
         }
     }
 }
@@ -705,10 +658,6 @@ function google_drive_further_actions_shortcode() {
                 event.preventDefault();
                 handleAuthClick();
             });
-
-            if (oauthToken) {
-                onApiLoad(); // Load Picker API if token is already available
-            }
         });
     </script>
     <?php
@@ -1080,7 +1029,12 @@ function writify_handle_chat_completions($GWiz_GF_OpenAI_Object, $feed, $entry, 
     } while ($retry);
 
     if($request_for_scores !== 'no'){
-        require_once('includes/merge tags/generated_band_score_merge_tag.php');
+		$GWiz_GF_OpenAI_Object->log_debug("Request Is For Scores " . $request_for_scores);
+		if (file_exists(plugin_dir_path(__FILE__) . 'Includes/merge tags/generated_band_score_merge_tag.php')) {
+            require_once plugin_dir_path(__FILE__) . 'Includes/merge tags/generated_band_score_merge_tag.php';
+        } else {
+            $GWiz_GF_OpenAI_Object->log_debug("File Not Found");
+        }
         if($request_for_scores == 'grammer_scores'){
             $criterion='GRA'; // LR for Lexical Resource (Vocabulary) GRA for Grammar
             $parsedData = parse_field_value($object->res);
@@ -1704,6 +1658,7 @@ function event_stream_openai(WP_REST_Request $request)
 
                 if ($end_point === "chat/completions") {
                     $request_for_scores = isset($feed['meta']['request_is_for_scores']) ? $feed['meta']['request_is_for_scores'] : 'no'; // Possible Values 'no','grammer_scores','vocab_scores'
+					$GWiz_GF_OpenAI_Object->log_debug("Request For Scores: " . $request_for_scores);
                     if($request_for_scores !== 'no'){
                         if($request_for_scores == 'grammer_scores'){
                             $grammer_score = intVal(gform_get_meta($entry['id'], 'grammer_score')) ?? 0;
