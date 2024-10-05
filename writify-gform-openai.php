@@ -1305,10 +1305,6 @@ function writify_handle_pronunciation($GWiz_GF_OpenAI_Object, $feed, $entry, $fo
     // Get the file URLs and reference text from the entry
     $file_urls = rgar($entry, $file_field_id);
     
-    // Get Number of Allowed Requests Per User Role
-    $allowed_requests_key = "pronunciation_requests_allowed_$user_role";
-    $allowed_number_of_api_requests = !empty(rgar($feed['meta'], $allowed_requests_key)) ? rgar($feed['meta'], $allowed_requests_key) : -1;
-    
     $gpls_result = check_user_submission_limit($GWiz_GF_OpenAI_Object, $feed, $entry, $form);
     $GWiz_GF_OpenAI_Object->log_debug("GPLS Test Result:".print_r($gpls_result,true));
     // Convert file_urls to array if it's a JSON string
@@ -2047,4 +2043,66 @@ function check_user_submission_limit( $GWiz_GF_OpenAI_Object, $feed, $entry, $fo
     }
 
     return $result;
+}
+
+// Result Copy Button on GF Result Page
+add_shortcode( 'result-copy-btn', 'render_result_copy_btn' );
+function render_result_copy_btn(){
+   // Get the protocol (http or https)
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
+
+    // Get the host name
+    $host = $_SERVER['HTTP_HOST'];
+
+    // Get the URI (path after the host)
+    $request_uri = $_SERVER['REQUEST_URI'];
+
+    // Combine them to form the full URL
+    $result_page_url = $protocol . $host . $request_uri;
+
+    ob_start();
+    ?>
+    <div class="result-link-wrap">
+        <span class="copy-result-link-trigger" onclick="copyResultLink()" data-link="<?php echo $result_page_url; ?>">
+            <svg width="40" height="28" viewBox="0 0 40 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_2121_9298)">
+                <path class="copy-trigger-svg" d="M23.3333 12H17.3333C16.597 12 16 12.597 16 13.3333V19.3333C16 20.0697 16.597 20.6667 17.3333 20.6667H23.3333C24.0697 20.6667 24.6667 20.0697 24.6667 19.3333V13.3333C24.6667 12.597 24.0697 12 23.3333 12Z" stroke="#26375F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="copy-trigger-svg" d="M13.3333 16.0002H12.6666C12.313 16.0002 11.9738 15.8597 11.7238 15.6096C11.4737 15.3596 11.3333 15.0205 11.3333 14.6668V8.66683C11.3333 8.31321 11.4737 7.97407 11.7238 7.72402C11.9738 7.47397 12.313 7.3335 12.6666 7.3335H18.6666C19.0202 7.3335 19.3593 7.47397 19.6094 7.72402C19.8594 7.97407 19.9999 8.31321 19.9999 8.66683V9.3335" stroke="#26375F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </g>
+                <defs>
+                <clipPath id="clip0_2121_9298">
+                <rect width="16" height="16" fill="white" transform="translate(10 6)"/>
+                </clipPath>
+                </defs>
+            </svg>
+        </span>
+        <span class="result-link-button">
+            <?php echo $result_page_url; ?>
+        </span>            
+    </div>
+    <script>
+        function copyResultLink() {
+        // Get the link from the inner text of the clicked element
+        let trigger = this.event.target; // 'this.event' is not necessary in modern browsers
+        let parentWrap = trigger.parentElement;
+        let linkContainer = parentWrap.querySelector('.result-link-button');
+        let link = linkContainer.innerText;
+        // Copy the link to the clipboard
+        navigator.clipboard.writeText(link)
+        .then(() => {
+            // Show a success message or give feedback
+            parentWrap.classList.add('copied');
+            linkContainer.innerText = "Link Copied";
+            setTimeout(function(link,linkContainer){
+                linkContainer.innerText = link;
+                parentWrap.classList.remove('copied');
+            },2000,link,linkContainer);
+        })
+        .catch(err => {
+            console.error('Failed to copy link: ', err);
+        });
+    }
+    </script>
+    <?php
+    return ob_get_clean();
 }

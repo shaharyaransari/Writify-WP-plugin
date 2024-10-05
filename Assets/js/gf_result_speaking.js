@@ -37,6 +37,7 @@ window.onload = function() {
             let isPronunciationProcessed = false;
             let readyToExport = false;
             let isErrorOccured = false;
+            let secondLastFeedEndpoint = '';
            
             window.audioFiles = null; //Variable to Hold File Paths
             let whisperResponse = []; // From Whisper [Array of Responses]
@@ -85,9 +86,6 @@ window.onload = function() {
                     eventData = event.data;
                 }
                 if (event.data == "[ALLDONE]") {
-                    if(!isErrorOccured){
-                        enableShareBtn();
-                    }
                     source.close();
                 }else if(event.data == "[FIRST-TIME]") {
                     loadingSavedData = false;
@@ -167,11 +165,12 @@ window.onload = function() {
                         setWpmMeterValue(wpm);
                     }else if(event.type == 'feeds'){
                         isPronunciationFeedActiveFlag = isPronunciationFeedActive(event.data);
-                        console.log('value of isPronunciationFeedActiveFlag' + isPronunciationFeedActiveFlag);
                         if(!isPronunciationFeedActiveFlag){ // Pronun Feed Not Active
                             console.log('Removing Pronunciation Loader');
                             removePronunLoader();
                         }
+                        secondLastFeedEndpoint = eventData[eventData.length - 2].meta.endpoint;
+                        console.log(secondLastFeedEndpoint);
                     }
                     else if(event.type == 'fluency_score'){
                         // Render Fluency Score
@@ -192,6 +191,7 @@ window.onload = function() {
                         // Render Grammer Score
                         let scoreVal = JSON.parse(event.data).response;
                         setScore('grammer_score',scoreVal);
+                        enableShareBtn();
                     }
                     else if(event.type == 'chat/completions'){ // Vocabulary Suggestions Streaming Logic
                         if(eventData.hasOwnProperty('error')){
@@ -591,20 +591,21 @@ window.onload = function() {
             }
 
             function adjustDataHeight(resultDataCarousel){
+                let maxHeight = window.innerHeight - 300;
                 let suggestionsParentWrap = document.querySelector('.suggestions-parent-wrap');
                 let activeMistakeContainer = resultDataCarousel.wrapperEl.querySelector('.swiper-slide-active .mistake-container');
-                suggestionsParentWrap.scrollTop = suggestionsParentWrap.scrollTop = 0;
-                // Need to update overflow and padding
-                if(suggestionsParentWrap.scrollHeight > activeMistakeContainer.scrollHeight){
-                    // Remove overflow auto to parent container
-                    suggestionsParentWrap.style.setProperty('overflow-y','hidden','important')
-                    // Remove Padding to parent container
-                    suggestionsParentWrap.style.setProperty('padding-right','0','important')
+                suggestionsParentWrap.scrollTop = 0;
+                if(activeMistakeContainer.scrollHeight > maxHeight){
+                    // Set overflow y to auto
+                    suggestionsParentWrap.style.setProperty('overflow-y','auto','important');
+                    // Cut Down Container
+                    suggestionsParentWrap.querySelector('.e-n-carousel.swiper').style.setProperty('max-height',`${activeMistakeContainer.scrollHeight}px`,'important');
+                    // console.log(suggestionsParentWrap.style.maxHeight);
                 }else{
-                    // add overflow auto to parent container
-                    suggestionsParentWrap.style.setProperty('overflow-y','auto','important')
-                    // add padding to parent container
-                    suggestionsParentWrap.style.setProperty('padding-right','10px','important')
+                    // set overflow y to hidden
+                    suggestionsParentWrap.style.setProperty('overflow-y','hidden','important');
+                    // Cut Down Container
+                    suggestionsParentWrap.querySelector('.e-n-carousel.swiper').style.removeProperty('max-height');
                 }
             }
     });

@@ -170,6 +170,11 @@ async function uploadFileToGoogleDrive(folderId, fileName) {
 function openDrivePopup(){
     const popup = document.getElementById("google-drive-popup");
     popup.style.display = "flex";
+    // Hide Elementor Popup 
+    const elementPopup = document.querySelectorAll('.elementor-popup-modal');
+    elementPopup.forEach(popup => {
+        popup.style.display = 'none';
+    });
 }
 
 function closeDrivePopup(){
