@@ -151,7 +151,6 @@ function createGrammerSectionWithComments(rawComments){
 
                     // Find corresponding comment from rawComments
                     const currentErrorComment = rawComments.find(comment => comment.errorId === suggestionID);
-                    console.log(currentErrorComment);
                     if (currentErrorComment) {
                         const commentStartPos = transcriptText.toLowerCase().indexOf(errorText.toLowerCase(), currentPosition);
                         
@@ -240,7 +239,6 @@ function createPronunSectionWithComments(rawComments){
 
                     // Find corresponding comment from rawComments
                     const currentErrorComment = rawComments.find(comment => comment.errorId === suggestionID);
-                    console.log(currentErrorComment);
                     if (currentErrorComment) {
                         const commentStartPos = transcriptText.toLowerCase().indexOf(errorText.toLowerCase(), currentPosition);
                         
@@ -308,7 +306,6 @@ function createFluencySection(){
     let headingText = `Fluency: ${score}`;
     let wpm = document.querySelector('#wpmValue span').textContent;
     let wpmData = wpm.match(/(\d+)\s*WPM\s*(.*)/);
-    console.log(wpmData);
     wpm = wpmData[1];
     let speedText = wpmData[2];
     let wpmColor;
@@ -321,14 +318,14 @@ function createFluencySection(){
         text: '_',
         color: '#ffc000'
     });
-    if(parseInt(wpm) < 110){
-        // Red if less then 110
+    if(parseInt(wpm) < 120){
+        // Red if less then 120
         wpmColor = '#FF4949';
-    }else if(parseInt(wpm) > 150){
-        // Orange if greater then 150
+    }else if(parseInt(wpm) > 180){
+        // Orange if greater then 180
         wpmColor = '#FF822E';
     }else{
-        // Green if between 110 and 150
+        // Green if between 120 and 180
         wpmColor = '#13CE66';
     }
     let sectionChildren = [
@@ -397,7 +394,6 @@ function createFluencySection(){
             if (errorSpans.length > 0) {
                 // Process each error in the transcript
                 errorSpans.forEach((error,index) => {
-                    console.log(error);
                     let isPauseError = false;
                     let isBadPause = false;
                     let isMissingPause = false;
@@ -435,6 +431,8 @@ function createFluencySection(){
                             currentPosition = pauseErrorStartPos;
                         }
                     }else{
+                        let errorText = error.innerText;
+                        console.log(errorText);
                         const fillerWordStartPos = transcriptText.toLowerCase().indexOf(errorText.toLowerCase(), currentPosition);
                         if (fillerWordStartPos >= 0) {
                             // Add the text before the comment
@@ -443,7 +441,7 @@ function createFluencySection(){
                             }
                             paraChildren.push(new TextRun({
                                 text: `${errorText}`,
-                                color: fillerWordsColor
+                                color: '#ffc000'
                             }));
                             // Update current position after the comment
                             currentPosition = fillerWordStartPos + errorText.length;
@@ -588,7 +586,6 @@ function getRawPronunComments(){
 
 function convertVocabCommentstoDocxFormat(rawComments){
     // Use the passed user data
-    console.log(writifyUserData);
     const authorName = writifyUserData.firstName + ' ' + writifyUserData.lastName || "Teacher";
     return rawComments.map((comment, index) => ({
         id: comment.commentCounter,
@@ -693,8 +690,8 @@ async function exportDocument(saveBlob = true) {
         ...createFluencySection(),
     ];
 
-    console.log(rawComments);
-    console.log(formattedComments);
+    // console.log(rawComments);
+    // console.log(formattedComments);
     const doc = new docx.Document({
         title: "Result", // Adjust as needed
         externalStyles: customStyles, // Use externalStyles instead of styles

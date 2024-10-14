@@ -111,6 +111,9 @@ window.onload = function() {
                         }
                         isPronunciationProcessed = true;
                     }
+
+                    // Make It Default to True again As After [DONE] New Request Will be Processed
+                    loadingSavedData = true;
                     
                 } else if(event.type !== 'message') {
                     // Event Contains Data to Process
@@ -231,9 +234,6 @@ window.onload = function() {
                             return;
                         }
                         generateGrammerErrorsList(event.data);
-                        
-                        // Make It Default to True again As After [DONE] New Request Will be Processed
-                        loadingSavedData = true;
                     }
                     else if(event.type == 'pronunciation'){ // pronunciation Streaming Logic
                         if(eventData.hasOwnProperty('error')){
@@ -448,12 +448,12 @@ window.onload = function() {
                 wpmArc.style.strokeDashoffset = offset;
             
                 // Change the stroke color based on the WPM value
-                if (clampedWpm < 110 ) {
+                if (clampedWpm < 120 ) {
                     wpmArc.style.stroke = 'rgba(255, 73, 73, 1)'; // Red if less than 110 WPM
                     // Update the WPM value in the center of the half-circle
                     wpmValue.innerHTML = `<span style="color:rgba(255, 73, 73, 1)">${clampedWpm} WPM <br> Too Slow</span>`;
                     wpmStatus.innerHTML = `Your Pace was a little <span style="color:rgba(255, 73, 73, 1)"> Too Slow</span> during this recording`;
-                } else if (clampedWpm > 160) {
+                } else if (clampedWpm > 180) {
                     wpmArc.style.stroke = 'rgba(255, 130, 46, 1)'; // Orange if greater than 150 WPM
                     // Update the WPM value in the center of the half-circle
                     wpmValue.innerHTML = `<span style="color:rgba(255, 130, 46, 1)">${clampedWpm} WPM <br> Too Fast</span>`;

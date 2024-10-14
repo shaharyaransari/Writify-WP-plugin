@@ -35,6 +35,7 @@ function processPronunciationData(pronunciationData,fileIndex){
     if(response.hasOwnProperty('error') && response.error){
         userAllowedToUseAPI = false
         removePronunLoader("Auto Pronunciation Checker limit Reached. Click on the mispronounced words manually to generate feedback. Double click to uncheck.");
+        markFillerWords();
     }else{
         userAllowedToUseAPI = true
         removePronunLoader();
@@ -98,8 +99,6 @@ function processPronunciationData(pronunciationData,fileIndex){
         let fluencyFileBlocks = $fluencytranscriptWrap.find('.file-block');
         let currentFluencyFileBlock = fluencyFileBlocks.eq(fileIndex);
 
-        // Define a list of filler words to be wrapped
-        const fillerWords = ['hmm', 'uhm', 'uh', 'um', 'huh'];
         // Array to hold fluency errors
         let fluencyErrors = [];
 
@@ -154,28 +153,41 @@ function processPronunciationData(pronunciationData,fileIndex){
                                 // Update the transcript with the new HTML
                                 transcript.html(updatedTranscriptText);
                             }
-
-                            // Global replacement for filler words without affecting existing HTML
-                            fillerWords.forEach(fillerWord => {
-                                let fillerRegex = new RegExp(`\\b${fillerWord}\\b`, 'gi');
-                                // Use jQuery's `.contents()` to get text nodes only and avoid span overwrites
-                                transcript.contents().filter(function () {
-                                    return this.nodeType === 3; // Node type 3 is text
-                                }).each(function () {
-                                    this.nodeValue = this.nodeValue.replace(fillerRegex, `<span class="filler-word">${fillerWord}</span>`);
-                                });
-                            });
-
                         });
                     }
                 });
             });
         });
-        // console.log(fluencyErrors);
+        markFillerWords();
         setTimeout(function(){
             saveFluencyErrorsInField(fluencyErrors);
         },2500,fluencyErrors);
     }
+}
+
+function markFillerWords() {
+    // Define a list of filler words to be wrapped
+    const fillerWords = ['hmm', 'uhm', 'uh', 'um', 'huh', 'like'];
+    
+    // Find all file blocks inside the transcript wrapper
+    let fluencyFileBlocks = $fluencytranscriptWrap.find('.file-block');
+    
+    // Iterate through each file block
+    fluencyFileBlocks.each(function() {
+        // Find the transcript text inside each block
+        jQuery(this).find('.transcript-text').each(function() {
+            let transcriptText = jQuery(this).html();
+            
+            // Create a regular expression to match the filler words with optional commas and spaces
+            const fillerWordRegex = new RegExp(`(?:\\s*,\\s*)?\\b(${fillerWords.join('|')})\\b,?`, 'gi');
+            
+            // Replace the matched filler words and optional commas with a span wrapping the text
+            const wrappedText = transcriptText.replace(fillerWordRegex, '<span class="filler-word">$&</span>');
+            
+            // Update the HTML content with the wrapped filler words
+            jQuery(this).html(wrappedText);
+        });
+    });
 }
 
 function processSavedPronunData(savedResponses){
@@ -249,7 +261,8 @@ function processSavedPronunData(savedResponses){
                 }
             });
         });
-    })
+    });
+    markFillerWords();
 }
 
 function removePronunLoader(message = "Click on the mispronounced words manually to generate feedback. Double click to uncheck."){

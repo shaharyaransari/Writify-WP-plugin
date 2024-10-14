@@ -811,3 +811,6 @@ span.arrow {
     height: 100%;
     background-color: transparent;
 }
+.filler-word{
+    color: rgb(255, 130, 46);
+}
