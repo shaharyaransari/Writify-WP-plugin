@@ -35,7 +35,6 @@ function processPronunciationData(pronunciationData,fileIndex){
     if(response.hasOwnProperty('error') && response.error){
         userAllowedToUseAPI = false
         removePronunLoader("Auto Pronunciation Checker limit Reached. Click on the mispronounced words manually to generate feedback. Double click to uncheck.");
-        markFillerWords();
     }else{
         userAllowedToUseAPI = true
         removePronunLoader();
@@ -158,7 +157,6 @@ function processPronunciationData(pronunciationData,fileIndex){
                 });
             });
         });
-        markFillerWords();
         setTimeout(function(){
             saveFluencyErrorsInField(fluencyErrors);
         },2500,fluencyErrors);
@@ -262,7 +260,6 @@ function processSavedPronunData(savedResponses){
             });
         });
     });
-    markFillerWords();
 }
 
 function removePronunLoader(message = "Click on the mispronounced words manually to generate feedback. Double click to uncheck."){

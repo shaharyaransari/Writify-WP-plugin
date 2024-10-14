@@ -161,6 +161,8 @@ window.onload = function() {
                             jQuery(grammerTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
                             jQuery(pronunTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
                             jQuery(fluencyTranscriptWrap).find('.audio-transcript-section').remove(); // Empty the Wrapper
+                            // Mark Filler Words
+                            markFillerWords();
                         }
                         
                     }else if(event.type == 'wpm'){
@@ -392,8 +394,6 @@ window.onload = function() {
                 });
 
                 paginationEl.appendChild(paginationWrap);
-
-
             }
 
             function updatePagination(audioUrl) {
