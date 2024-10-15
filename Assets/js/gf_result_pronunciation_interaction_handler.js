@@ -164,8 +164,11 @@ function processPronunciationData(pronunciationData,fileIndex){
 }
 
 function markFillerWords() {
-    // Define a list of filler words to be wrapped
-    const fillerWords = ['hmm', 'uhm', 'uh', 'um', 'huh', 'like'];
+    // Define a list of filler words that do not require commas
+    const fillerWordsWithoutComma = ['hmm', 'uhm', 'uh', 'um', 'huh'];
+    
+    // Define a list of filler words that require commas
+    const fillerWordsWithComma = ['like'];
     
     // Find all file blocks inside the transcript wrapper
     let fluencyFileBlocks = $fluencytranscriptWrap.find('.file-block');
@@ -176,11 +179,17 @@ function markFillerWords() {
         jQuery(this).find('.transcript-text').each(function() {
             let transcriptText = jQuery(this).html();
             
-            // Create a regular expression to match the filler words with optional commas and spaces
-            const fillerWordRegex = new RegExp(`(?:\\s*,\\s*)?\\b(${fillerWords.join('|')})\\b,?`, 'gi');
+            // Create a regular expression to match filler words without commas
+            const fillerWordRegexWithoutComma = new RegExp(`\\b(${fillerWordsWithoutComma.join('|')})\\b`, 'gi');
             
-            // Replace the matched filler words and optional commas with a span wrapping the text
-            const wrappedText = transcriptText.replace(fillerWordRegex, '<span class="filler-word">$&</span>');
+            // Create a regular expression to match filler words with required commas (e.g., ", like,")
+            const fillerWordRegexWithComma = new RegExp(`\\s*,\\s*\\b(${fillerWordsWithComma.join('|')})\\b,`, 'gi');
+            
+            // First, replace filler words with required commas (e.g., ", like,")
+            transcriptText = transcriptText.replace(fillerWordRegexWithComma, '<span class="filler-word">$&</span>');
+            
+            // Then, replace filler words that don't require commas
+            const wrappedText = transcriptText.replace(fillerWordRegexWithoutComma, '<span class="filler-word">$&</span>');
             
             // Update the HTML content with the wrapped filler words
             jQuery(this).html(wrappedText);
