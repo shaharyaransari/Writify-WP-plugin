@@ -552,9 +552,9 @@ function writify_enqueue_scripts()
             wp_enqueue_script('gf-result-speaking', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_speaking.js', array('jquery','speaking-result-audio-player'), time(), true);
             wp_enqueue_style('speaking-result-audio-player', plugin_dir_url(__FILE__) . 'Assets/css/result_audio_player.css', array(), time(), 'all');
             wp_enqueue_style('font-awesome', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css');
-            wp_enqueue_script('gf-result-vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_vocab_interaction_handler.js', array('jquery'), '1.0.0', true);
-            wp_enqueue_script('gf-result-grammer-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_grammer_interaction_handler.js', array('jquery'), '1.0.0', true);
-            wp_enqueue_script('gf-result-pronun-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_pronunciation_interaction_handler.js', array('jquery'), '1.0.0', true);
+            wp_enqueue_script('gf-result-vocab-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_vocab_interaction_handler.js', array('jquery'), time(), true);
+            wp_enqueue_script('gf-result-grammer-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_grammer_interaction_handler.js', array('jquery'), time(), true);
+            wp_enqueue_script('gf-result-pronun-interaction-handler', plugin_dir_url(__FILE__) . 'Assets/js/gf_result_pronunciation_interaction_handler.js', array('jquery'), time(), true);
 
             // Localize scripts for Speaking Result Page
             wp_localize_script('gf-result-speaking', 'gfResultSpeaking', array(
