@@ -424,6 +424,10 @@ span.arrow {
 .grammer-error-popup-row > .popup-suggested-grammer span:hover {
 	background: #d12a1b; /* Darker shade for hover */
 }
+.popup-suggested-grammer{
+    max-height: 250px;
+    overflow-y: auto;
+}
 .grammer-error.grammer-highlighted{
 		background-color: #ffa600;
     color: #26375F;
@@ -623,33 +627,33 @@ span.arrow {
 }
 
 /* For WebKit browsers (Chrome, Safari, Edge) */
-.transcript-parent-wrap::-webkit-scrollbar,
-.suggestions-parent-wrap::-webkit-scrollbar {
+::-webkit-scrollbar,
+::-webkit-scrollbar {
     width: 12px; /* Adjust the width of the scrollbar */
 	background-color: white;
 }
 
-.transcript-parent-wrap::-webkit-scrollbar-thumb,
-.suggestions-parent-wrap::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
     background-color: #ddd; /* Color of the scrollbar thumb */
     border-radius: 999px; /* Fully rounded corners */
     border: 3px solid transparent; /* Space around the thumb to hide the track */
     background-clip: padding-box; /* Ensures the thumb doesn't overflow */
 }
 
-.transcript-parent-wrap::-webkit-scrollbar-track,
-.suggestions-parent-wrap::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
     background-color: transparent; /* Hides the track */
 }
 
 /* Optional: Hover effect for scrollbar */
-.transcript-parent-wrap::-webkit-scrollbar-thumb:hover,
-.suggestions-parent-wrap::-webkit-scrollbar-thumb:hover {
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
     background-color: #ccc; /* Darker color on hover */
 }
 
 /* Firefox specific */
-.transcript-parent-wrap, .suggestions-parent-wrap {
+* {
     scrollbar-width: thin; /* Thin scrollbar */
     scrollbar-color: #ddd transparent; /* Custom color for the thumb and transparent track */
 	
