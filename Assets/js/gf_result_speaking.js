@@ -600,7 +600,6 @@ window.onload = function() {
                     suggestionsParentWrap.style.setProperty('overflow-y','auto','important');
                     // Cut Down Container
                     suggestionsParentWrap.querySelector('.e-n-carousel.swiper').style.setProperty('max-height',`${activeMistakeContainer.scrollHeight}px`,'important');
-                    // console.log(suggestionsParentWrap.style.maxHeight);
                 }else{
                     // set overflow y to hidden
                     suggestionsParentWrap.style.setProperty('overflow-y','hidden','important');
