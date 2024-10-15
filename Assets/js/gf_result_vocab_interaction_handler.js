@@ -80,15 +80,39 @@ function addClickEventListenerToDiv($newDiv, updatedText) {
             
             // Remove Existing Highlights
             $transcriptWrap.find(".vocab-error").removeClass("vocab-highlighted");
+            const $errorElement = $transcriptWrap.find(`.vocab-error#${errorId}`).addClass('vocab-highlighted');
+            setTimeout(() => {
+                // Check if the element exists
+                if (!$errorElement.length) {
+                    console.error('Error: Element not found');
+                    return;
+                }
             
-            // Add Class To Current one
-            const $errorElement = $transcriptWrap.find(`.vocab-error#${errorId}`).addClass("vocab-highlighted");
+                // Check if the element is visible
+                if (!$errorElement.is(':visible')) {
+                    console.error('Error: Element is not visible');
+                    return;
+                }
             
-            // Scroll the element into view centered
-            $errorElement[0].scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
+                // Get the scrollable container (replace this selector with the correct one for your container)
+                const $vocabScrollableContainer = jQuery('.transcript-parent-wrap'); // Replace with actual scrollable container if needed
+            
+                if ($vocabScrollableContainer.length) {
+                    // Calculate the position of the element relative to the scrollable container
+                    const elementOffset = $errorElement.offset().top;
+                    const containerOffset = $vocabScrollableContainer.offset().top;
+                    const scrollPosition = elementOffset - containerOffset + $vocabScrollableContainer.scrollTop() - 50; // Adjust the offset (e.g., 50px)
+            
+                    // Scroll the container to the element's position with the offset
+                    $vocabScrollableContainer.animate({
+                        scrollTop: scrollPosition
+                    }, 400); // Adjust the speed as needed (400ms for smooth scroll)
+                    
+                    console.log('Element scrolled into view inside the container.');
+                } else {
+                    console.error('Error: Scrollable container not found.');
+                }
+            }, 200); // Timeout delay of 200ms (adjust if necessary)
             
             // Show or hide specific elements within the clicked list item
             jQuery(this).find(".original-vocab, .arrow, .or, .improved-vocab, .explanation").slideDown(200);
