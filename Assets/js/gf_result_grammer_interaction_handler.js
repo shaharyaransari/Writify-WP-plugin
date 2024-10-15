@@ -18,14 +18,17 @@ function generateGrammarErrorHTML(matches) {
         jQuery('#grammer-suggestions img').replaceWith('<span>No Errors Found</span>');
         return;
     }
-    function wrapErrorWordInTranscript(errorWord, context, transcript, offset, length,errorId) {
+    function wrapErrorWordInTranscript(errorWord, context, transcript, offset, length, errorId) {
         // Extract the substring containing 10 characters after the error word from context
         const start = offset + length;
         const substring = context.substring(offset, start + 10);
-        periodIndex = substring.indexOf('.');
-        // console.log(substring);
-        // console.log(periodIndex);
-        // console.log(context);
+        const periodIndex = substring.indexOf('.');
+        console.log(
+            `Transcript: ${transcript} \n`,
+            `ErrorWord: ${errorWord}\n`,
+            `ErrorID: ${errorId}\n`,
+            `Context: ${context}\n`
+        );
         
         // Find the position of the substring in the transcript
         const substringIndex = transcript.indexOf(substring);
@@ -36,35 +39,70 @@ function generateGrammarErrorHTML(matches) {
             const errorWordPosition = errorWordInTranscript.indexOf(errorWord);
             
             if (errorWordPosition !== -1) {
+                // Create a regular expression that avoids replacing the word inside HTML tags
+                const regex = new RegExp(`(?<!<[^>]*)\\b(${errorWord})\\b(?![^<]*>)`, 'i');
+    
                 // Ensure the error word is not already wrapped in a <span> tag
-                const regex = new RegExp(`<span[^>]*>${errorWord}</span>`);
-                if (!regex.test(transcript)) {
-                    // Replace the first occurrence of the error word with a <span> wrapped version
-                    const wrappedErrorWord = `<span class="grammer-error" id="ERROR_${errorId}" >${errorWord}</span>`;
-                    const updatedTranscript = transcript.replace(errorWord, wrappedErrorWord);
+                if (regex.test(transcript)) {
+                    // Replace only the first occurrence of the error word not inside a tag with a span
+                    const wrappedErrorWord = `<span class="grammer-error" id="ERROR_${errorId}">${errorWord}</span>`;
+                    const updatedTranscript = transcript.replace(regex, wrappedErrorWord);
                     
                     return updatedTranscript;
                 }
             }
         }
-        
+    
         // Return the original transcript if no match or already wrapped
+        return transcript;
+    } 
+
+    function wrapErrorWordInTranscriptWithoutContext(errorWord, transcript, errorId) {
+        // Create a regular expression that ensures we are not replacing the word inside HTML tags
+        const regex = new RegExp(`(?<!<[^>]*)\\b(${errorWord})\\b(?![^<]*>)`, 'i');
+        // Ensure the word is not already wrapped
+        if (regex.test(transcript)) {
+            // Replace only the first occurrence of the error word not inside a tag with a span
+            const wrappedErrorWord = `<span class="grammer-error" id="ERROR_${errorId}">${errorWord}</span>`;
+            
+            return transcript.replace(regex, wrappedErrorWord);
+        }
+        
         return transcript;
     }
 
-    function wrapErrorWordInTranscriptWithoutContext(errorWord, transcript,errorId) {
-        // Directly find the first occurrence of the error word in the transcript without any context
-        if (transcript.includes(errorWord)) {
-            const regex = new RegExp(`<span[^>]*>${errorWord}</span>`);
-            // Ensure the error word is not already wrapped
-            if (!regex.test(transcript)) {
-                // Replace the first occurrence of the error word with a <span> wrapped version
-                const wrappedErrorWord = `<span class="grammer-error" id="ERROR_${errorId}" >${errorWord}</span>`;
-                return transcript.replace(errorWord, wrappedErrorWord);
+    function generalSearchForErrorWord(errorWord, transcript, errorId) {
+        // Convert both the transcript and the error word to lowercase for case-insensitive matching
+        const lowerCaseTranscript = transcript.toLowerCase().trim();
+        const lowerCaseErrorWord = errorWord.toLowerCase().trim();
+        
+        // Create a regular expression that searches for the error word with word boundaries
+        const regex = new RegExp(`${lowerCaseErrorWord}`, 'i'); // The 'i' flag makes it case-insensitive
+    
+        // Check if the error word exists in the transcript using the regex
+        if (regex.test(lowerCaseTranscript)) {
+            // Find the position of the error word in the original transcript
+            const match = transcript.match(regex);
+            if (match) {
+                const startIndex = match.index;
+                const endIndex = startIndex + match[0].length;
+    
+                // Extract the matching portion from the original transcript (keeping the original case and punctuation)
+                const matchingPortion = transcript.substring(startIndex, endIndex);
+    
+                // Wrap the matched portion with a <span> tag
+                const wrappedErrorWord = `<span class="grammer-error" id="ERROR_${errorId}">${matchingPortion}</span>`;
+    
+                // Replace the matched portion in the original transcript with the wrapped version
+                const updatedTranscript = transcript.replace(matchingPortion, wrappedErrorWord);
+    
+                return updatedTranscript;
             }
         }
+    
+        // Return the original transcript if no match is found
         return transcript;
-    }
+    }    
 
     matches.forEach(match => {
         // Extract values from the match object, trimmed for safety
@@ -149,6 +187,27 @@ function generateGrammarErrorHTML(matches) {
                 if (updatedTranscript !== transcript) {
                     jQuery(element).html(updatedTranscript); // Update the HTML with the wrapped version
                     found = true; // Set flag to true to stop further iterations
+                }
+            });
+        }
+
+        if (!found) {
+            console.log("Error word not found using strict methods. Performing general search...");
+    
+            $grammertranscriptWrap.find('.file-block .transcript-text').each(function(index, element) {
+                if (found) return false;
+                
+                let transcript = jQuery(element).html(); // This is the Transcript
+        
+                let updatedTranscript = generalSearchForErrorWord(
+                    grammerErrorObj.originalWord,
+                    transcript,
+                    grammerErrorObj.errorId
+                );
+        
+                if (updatedTranscript !== transcript) {
+                    jQuery(element).html(updatedTranscript);
+                    found = true;
                 }
             });
         }
@@ -301,33 +360,94 @@ function handleClickForGrammerError($newDiv) {
     const $elementsToShow = $newDiv.find(".grammer-short-explanation");
     // Initially hide the elements that need to be hidden
     $elementsToHide.hide();
-    
-    // Add click event to toggle visibility when interacting with the div
+
     $newDiv.on('click', function (event) {
         event.stopPropagation();
-        let  errorId = jQuery(this).attr('id');
-        // Highlight Grammer Error 
-        let transcriptErrorId = errorId.replace('GRAMMER_','');
-        
+        let errorId = jQuery(this).attr('id');
+        let transcriptErrorId = errorId.replace('GRAMMER_', '');
+    
+        // Get the parent container to update its max-height
+        const $scrollableParent = jQuery('.suggestions-parent-wrap .e-n-carousel.swiper');
+        $scrollableParent.data('MaxHeightAdded',0); // Reset the Value
+        // Get Current Height of $newDiv before expansion
+        const initialHeight = this.scrollHeight;
         // UnExpand Other Divs
-        jQuery(".grammer_error").not(this).removeClass('expanded');
-        jQuery(".grammer_error").not(this).find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
-        jQuery(".grammer_error").not(this).find('.grammer-short-explanation').slideDown(200);
-        
-
+        jQuery(".grammer_error").not(this).each(function () {
+            const $thisDiv = jQuery(this);
+            
+            // Check if the div contains a previously added height in the data attribute
+            const prevHeightDiff = $thisDiv.data('prevHeightDiff') || 0;
+            // If there's a previous height difference, subtract it from the scrollable parent's max-height
+            if (prevHeightDiff) {
+                let currentMaxHeight = parseInt($scrollableParent.css('max-height'), 10) || 0;
+                $scrollableParent.css('max-height', (currentMaxHeight - prevHeightDiff) + 'px');
+                
+                // Clear the stored height difference after removing it
+                $thisDiv.data('prevHeightDiff', 0);
+            }
+    
+            // Collapse the div by removing the 'expanded' class and hiding the content
+            $thisDiv.removeClass('expanded');
+            $thisDiv.find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
+            $thisDiv.find('.grammer-short-explanation').slideDown(200);
+        });
+    
         // Expand Current Div
         jQuery(this).addClass('expanded');
         jQuery(this).find('.grammer-short-explanation').slideUp(200);
-        jQuery(this).find('.arrow, .improved-grammer-word, .explanation').slideDown(200);
+        jQuery(this).find('.arrow, .improved-grammer-word, .explanation').slideDown(200, () => {
+            // SlidDown Event Seems Triggering Function Multiple Times and We Only want to add height one time.
+            if(!$scrollableParent.data('MaxHeightAdded')){
+                // Get New Height of $newDiv after expansion
+                const newHeight = this.scrollHeight;
+                // Calculate the difference in height
+                const heightDifference = newHeight - initialHeight;
         
-        $grammertranscriptWrap.find(`.grammer-error`).removeClass('grammer-highlighted');
-        $grammertranscriptWrap.find(`.grammer-error#${transcriptErrorId}`).addClass('grammer-highlighted');
-        // Scroll the element into view centered
-        $grammertranscriptWrap.find(`.grammer-error#${transcriptErrorId}`)[0].scrollIntoView({
-            behavior: 'smooth',
-            block: 'center'
+                // Get the current max-height of the scrollable parent container
+                let initMaxHeightofParent = parseInt($scrollableParent.css('max-height'), 10) || 0;
+
+                // Update the max-height of the scrollable parent container by adding the new height difference
+                const newMaxHeight = initMaxHeightofParent + heightDifference;
+                $scrollableParent.data('MaxHeightAdded',1);
+                $scrollableParent.css('max-height', newMaxHeight + 'px');
+        
+                // Store the new height difference so it can be removed later
+                jQuery(this).data('prevHeightDiff', heightDifference);
+            }
         });
-    });
+    
+        // Scroll Logic for Grammar Error
+        $grammertranscriptWrap.find('.grammer-error').removeClass('grammer-highlighted');
+        const $grammarErrorEl = $grammertranscriptWrap.find(`.grammer-error#${transcriptErrorId}`).addClass('grammer-highlighted');
+    
+        setTimeout(() => {
+            if (!$grammarErrorEl.length) {
+                console.error('Error: Element not found');
+                return;
+            }
+    
+            if (!$grammarErrorEl.is(':visible')) {
+                console.error('Error: Element is not visible');
+                return;
+            }
+    
+            const $scrollableContainer = jQuery('.transcript-parent-wrap');
+    
+            if ($scrollableContainer.length) {
+                const elementOffset = $grammarErrorEl.offset().top;
+                const containerOffset = $scrollableContainer.offset().top;
+                const scrollPosition = elementOffset - containerOffset + $scrollableContainer.scrollTop() - 50;
+    
+                $scrollableContainer.animate({
+                    scrollTop: scrollPosition
+                }, 400);
+    
+                console.log('Element scrolled into view inside the container.');
+            } else {
+                console.error('Error: Scrollable container not found.');
+            }
+        }, 200);
+    });    
 }
 
 function addClickEventListenerToGrammerError() {
@@ -362,43 +482,95 @@ function addClickEventListenerToGrammerError() {
         }); // Optionally animate the popup appearance
 
         if (!$correspondingDiv.hasClass("expanded")) {
+            const $scrollableParent = jQuery('.suggestions-parent-wrap .e-n-carousel.swiper');
+            $scrollableParent.data('MaxHeightAdded',0); // Reset the Value
+            // Get Current Height of $newDiv before expansion
+            const initialHeight = $correspondingDiv[0].scrollHeight;
+            console.log(`initialHeight: ${initialHeight}`);
             // Hide elements and show the short explanation of other list items with the "upgrade_grammer" class
             // UnExpand Other Divs
-            jQuery(".grammer_error").not($correspondingDiv).removeClass('expanded');
-            jQuery(".grammer_error").not($correspondingDiv).find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
-            jQuery(".grammer_error").not($correspondingDiv).find('.grammer-short-explanation').slideDown(200);
+            jQuery(".grammer_error").not($correspondingDiv).each(function () {
+                const $thisDiv = jQuery(this);
+                
+                // Check if the div contains a previously added height in the data attribute
+                const prevHeightDiff = $thisDiv.data('prevHeightDiff') || 0;
+                
+                // If there's a previous height difference, subtract it from the scrollable parent's max-height
+                if (prevHeightDiff) {
+                    let currentMaxHeight = parseInt($scrollableParent.css('max-height'), 10) || 0;
+                    $scrollableParent.css('max-height', (currentMaxHeight - prevHeightDiff) + 'px');
+                    
+                    // Clear the stored height difference after removing it
+                    $thisDiv.data('prevHeightDiff', 0);
+                }
+        
+                // Collapse the div by removing the 'expanded' class and hiding the content
+                $thisDiv.removeClass('expanded');
+                $thisDiv.find('.grammer-short-explanation').slideDown(200);
+                $thisDiv.find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
+            });
 
             // Remove existing highlights
             $grammertranscriptWrap.find(".grammer-error").removeClass("grammer-highlighted");
 
             // Add class to the current one
-            // jQuery(this).addClass("grammer-highlighted");
-
-
-            // Scroll the grammer-error element into view centered
-            jQuery(this).scrollIntoView({
-                behavior: 'smooth',
-                block: 'center'
-            });
+            jQuery(this).addClass("grammer-highlighted");
 
             // Show or hide specific elements within the clicked list item
             // Expand Current Div
             $correspondingDiv.addClass('expanded');
             $correspondingDiv.find('.grammer-short-explanation').slideUp(200);
-            $correspondingDiv.find('.arrow, .improved-grammer-word, .explanation').slideDown(200);
+            // $correspondingDiv.find('.arrow, .improved-grammer-word, .explanation').slideDown(200);
+            $correspondingDiv.find('.arrow, .improved-grammer-word, .explanation').slideDown(200, () => {
+                // SlidDown Event Seems Triggering Function Multiple Times and We Only want to add height one time.
+                if(!$scrollableParent.data('MaxHeightAdded')){
+                    // Get New Height of $newDiv after expansion
+                    const newHeight = $correspondingDiv[0].scrollHeight;
+                    // Calculate the difference in height
+                    const heightDifference = newHeight - initialHeight;
+            
+                    // Get the current max-height of the scrollable parent container
+                    let initMaxHeightofParent = parseInt($scrollableParent.css('max-height'), 10) || 0;
 
-            // Add the "expanded" class to the corresponding div
-            $correspondingDiv.addClass("expanded");
+                    console.log('heightDifference' + heightDifference);
+                    console.log('initMaxHeightofParent' + initMaxHeightofParent);
+                    // Update the max-height of the scrollable parent container by adding the new height difference
+                    const newMaxHeight = initMaxHeightofParent + heightDifference;
+                    $scrollableParent.data('MaxHeightAdded',1);
+                    $scrollableParent.css('max-height', newMaxHeight + 'px');
+            
+                    // Store the new height difference so it can be removed later
+                    jQuery(this).data('prevHeightDiff', heightDifference);
+                }
+            });
         }
     });
 }
 
 
 $document.on('click', function () {
+    // Get the parent container to update its max-height
+    const $scrollableParent = jQuery('.suggestions-parent-wrap .e-n-carousel.swiper');
     // UnExpand Divs
-    jQuery(".grammer_error").removeClass('expanded');
-    jQuery(".grammer_error").find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
-    jQuery(".grammer_error").find('.grammer-short-explanation').slideDown(200);
+    jQuery(".grammer_error").each(function () {
+        const $thisDiv = jQuery(this);
+        
+        // Check if the div contains a previously added height in the data attribute
+        const prevHeightDiff = $thisDiv.data('prevHeightDiff') || 0;
+        // If there's a previous height difference, subtract it from the scrollable parent's max-height
+        if (prevHeightDiff) {
+            let currentMaxHeight = parseInt($scrollableParent.css('max-height'), 10) || 0;
+            $scrollableParent.css('max-height', (currentMaxHeight - prevHeightDiff) + 'px');
+            
+            // Clear the stored height difference after removing it
+            $thisDiv.data('prevHeightDiff', 0);
+        }
+
+        // Collapse the div by removing the 'expanded' class and hiding the content
+        $thisDiv.removeClass('expanded');
+        $thisDiv.find('.arrow, .improved-grammer-word, .explanation').slideUp(200);
+        $thisDiv.find('.grammer-short-explanation').slideDown(200);
+    });
     
     $grammertranscriptWrap.find(".grammer-error").removeClass("grammer-highlighted");
     jQuery('.grammer-error-popup').removeClass('active');
